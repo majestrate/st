@@ -3178,7 +3178,7 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			}
 
 			if(u8fl > 0) {
-				wld_draw_text_n(wld.renderer,
+				wld_draw_text(wld.renderer,
 						font->match, fg, xp,
 						winy + font->ascent,
 						u8fs, u8fblen, NULL);
@@ -3248,7 +3248,7 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			FcCharSetDestroy(fccharset);
 		}
 
-		wld_draw_text_n(wld.renderer, frc[i].font, fg,
+		wld_draw_text(wld.renderer, frc[i].font, fg,
 				xp, winy + frc[i].font->ascent,
 				u8c, u8cblen, NULL);
 
