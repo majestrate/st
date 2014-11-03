@@ -3,7 +3,7 @@
 
 include config.mk
 
-SRC = st.c
+SRC = st.c xdg-shell-protocol.c
 OBJ = ${SRC:.c=.o}
 
 all: options st
@@ -16,6 +16,16 @@ options:
 
 config.h:
 	cp config.def.h config.h
+
+xdg-shell-protocol.c: xdg-shell.xml
+	@echo GEN $@
+	@wayland-scanner code <$< >$@
+
+xdg-shell-client-protocol.h: xdg-shell.xml
+	@echo GEN $@
+	@wayland-scanner client-header <$< >$@
+
+st.o: xdg-shell-client-protocol.h
 
 .c.o:
 	@echo CC $<
