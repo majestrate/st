@@ -481,6 +481,7 @@ static void kbdkey(void *, struct wl_keyboard *, uint32_t, uint32_t, uint32_t,
 		uint32_t);
 static void kbdmodifiers(void *, struct wl_keyboard *, uint32_t, uint32_t,
 		uint32_t, uint32_t, uint32_t);
+static void kbdrepeatinfo(void *, struct wl_keyboard *, int32_t, int32_t);
 static void ptrenter(void *, struct wl_pointer *, uint32_t, struct wl_surface *,
 		wl_fixed_t, wl_fixed_t);
 static void ptrleave(void *, struct wl_pointer *, uint32_t,
@@ -536,7 +537,7 @@ static struct wl_registry_listener reglistener = { regglobal, regglobalremove };
 static struct wl_surface_listener surflistener = { surfenter, surfleave };
 static struct wl_callback_listener framelistener = { framedone };
 static struct wl_keyboard_listener kbdlistener =
-	{ kbdkeymap, kbdenter, kbdleave, kbdkey, kbdmodifiers };
+	{ kbdkeymap, kbdenter, kbdleave, kbdkey, kbdmodifiers, kbdrepeatinfo };
 static struct wl_pointer_listener ptrlistener =
 	{ ptrenter, ptrleave, ptrmotion, ptrbutton, ptraxis };
 static struct xdg_shell_listener xdgshelllistener = { xdgshellping };
@@ -3517,7 +3518,7 @@ regglobal(void *data, struct wl_registry *registry, uint32_t name,
 		wl.shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
 	} else if(strcmp(interface, "wl_seat") == 0) {
 		wl.seat = wl_registry_bind(registry, name,
-				&wl_seat_interface, 1);
+				&wl_seat_interface, 4);
 	} else if(strcmp(interface, "wl_data_device_manager") == 0) {
 		wl.datadevmanager = wl_registry_bind(registry, name,
 				&wl_data_device_manager_interface, 1);
@@ -3702,6 +3703,13 @@ kbdmodifiers(void *data, struct wl_keyboard *keyboard, uint32_t serial,
 		wl.xkb.mods |= MOD_MASK_SHIFT;
 	if (mod_mask & (1 << wl.xkb.logo))
 		wl.xkb.mods |= MOD_MASK_LOGO;
+}
+
+void
+kbdrepeatinfo(void *data, struct wl_keyboard *keyboard,
+		int32_t rate, int32_t delay) {
+	keyrepeatdelay = delay;
+	keyrepeatinterval = 1000 / rate;
 }
 
 void
