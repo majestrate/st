@@ -3507,7 +3507,7 @@ regglobal(void *data, struct wl_registry *registry, uint32_t name,
 	  const char *interface, uint32_t version) {
 	if(strcmp(interface, "wl_compositor") == 0) {
 		wl.cmp = wl_registry_bind(registry, name,
-				&wl_compositor_interface, 1);
+				&wl_compositor_interface, 3);
 	} else if(strcmp(interface, "xdg_shell") == 0) {
 		wl.shell = wl_registry_bind(registry, name,
 				&xdg_shell_interface, 1);
@@ -3524,7 +3524,7 @@ regglobal(void *data, struct wl_registry *registry, uint32_t name,
 				&wl_data_device_manager_interface, 1);
 	} else if(strcmp(interface, "wl_output") == 0) {
 		/* bind to outputs so we can get surface enter events */
-		wl_registry_bind(registry, name, &wl_output_interface, 1);
+		wl_registry_bind(registry, name, &wl_output_interface, 2);
 	}
 }
 
