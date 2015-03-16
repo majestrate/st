@@ -51,7 +51,7 @@ solution for them is to use the following command:
 	$ printf '\033[?1h\033=' >/dev/tty
 
 or
-	$ echo $(tput smkx) >/dev/tty
+	$ tput smkx
 
 In the case of bash, readline is used. Readline has a different note in its
 manpage about this issue:
@@ -86,22 +86,26 @@ Putting these lines into your .zshrc will fix the problems.
 
 ## How can I use meta in 8bit mode?
 
- St supports meta in 8bit mode, but the default terminfo entry doesn't
- use this capability. If you want it, you have to use the 'st-meta' value
- in TERM.
+St supports meta in 8bit mode, but the default terminfo entry doesn't
+use this capability. If you want it, you have to use the 'st-meta' value
+in TERM.
 
 ## I cannot compile st in OpenBSD
 
-OpenBSD lacks of librt, despite it begin mandatory in POSIX
+OpenBSD lacks librt, despite it being mandatory in POSIX
 <http://pubs.opengroup.org/onlinepubs/9699919799/utilities/c99.html#tag_20_11_13>.
 If you want to compile st for OpenBSD you have to remove -lrt from config.mk, and
 st will compile without any loss of functionality, because all the functions are
 included in libc on this platform.
 
-## Backspace key does not work
+## The Backspace Case
+
+St is emulating the Linux way of handling backspace being delete and delete being
+backspace.
 
 This is an issue that was discussed in suckless mailing list
-<http://lists.suckless.org/dev/1404/20697.html>:
+<http://lists.suckless.org/dev/1404/20697.html>. Here is why some old grumpy
+terminal users wants its backspace to be how he feels it:
 
 	Well, I am going to comment why I want to change the behaviour
 	of this key. When ASCII was defined in 1968, communication
@@ -154,4 +158,10 @@ This is an issue that was discussed in suckless mailing list
 
 	[1] http://www.ibb.net/~anne/keyboard.html
 	[2] http://www.tldp.org/HOWTO/Keyboard-and-Console-HOWTO-5.html
+
+## But I really want the old grumpy behaviour of my terminal
+
+Apply [1].
+
+[1] http://st.suckless.org/patches/delkey
 

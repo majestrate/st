@@ -68,8 +68,6 @@ char *argv0;
 #define AXIS_VERTICAL	WL_POINTER_AXIS_VERTICAL_SCROLL
 #define AXIS_HORIZONTAL	WL_POINTER_AXIS_HORIZONTAL_SCROLL
 
-#define REDRAW_TIMEOUT (80*1000) /* 80 ms */
-
 /* macros */
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 #define MAX(a, b)  ((a) < (b) ? (b) : (a))
@@ -325,7 +323,7 @@ typedef struct {
 		int x, y;
 	} nb, ne, ob, oe;
 
-	char *clip;
+	char *primary;
 	struct wl_data_source *source;
 	bool alt;
 	uint32_t tclick1, tclick2;
@@ -387,7 +385,7 @@ typedef struct {
 
 static void die(const char *, ...);
 static void draw(void);
-static void redraw(int);
+static void redraw(void);
 static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
@@ -593,6 +591,7 @@ enum {
 typedef struct {
 	struct wld_font *font;
 	int flags;
+	long unicodep;
 } Fontcache;
 
 /* Fontcache is an array now. A new font will be appended to the array. */
@@ -710,7 +709,7 @@ selinit(void) {
 	sel.tclick2 = 0;
 	sel.mode = 0;
 	sel.ob.x = -1;
-	sel.clip = NULL;
+	sel.primary = NULL;
 	sel.source = NULL;
 }
 
@@ -1037,8 +1036,8 @@ selpaste(const Arg *dummy) {
 	if(wl.seloffer) {
 		/* check if we are pasting from ourselves */
 		if(sel.source) {
-			str = sel.clip;
-			left = strlen(sel.clip);
+			str = sel.primary;
+			left = strlen(sel.primary);
 			while(left > 0) {
 				len = MIN(sizeof buf, left);
 				memcpy(buf, str, len);
@@ -1069,8 +1068,8 @@ selclear(void) {
 
 void
 wlsetsel(char *str, uint32_t serial) {
-	free(sel.clip);
-	sel.clip = str;
+	free(sel.primary);
+	sel.primary = str;
 
 	if(str) {
 		sel.source = wl_data_device_manager_create_data_source(wl.datadevmanager);
@@ -1771,7 +1770,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				mode = term.mode;
 				MODBIT(term.mode, set, MODE_REVERSE);
 				if(mode != term.mode)
-					redraw(REDRAW_TIMEOUT);
+					redraw();
 				break;
 			case 6: /* DECOM -- Origin */
 				MODBIT(term.c.state, set, CURSOR_ORIGIN);
@@ -2141,7 +2140,7 @@ strhandle(void) {
 				 * TODO if defaultbg color is changed, borders
 				 * are dirty
 				 */
-				redraw(0);
+				redraw();
 			}
 			return;
 		}
@@ -2618,13 +2617,16 @@ tputc(char *c, int len) {
 	if(IS_SET(MODE_WRAP) && (term.c.state & CURSOR_WRAPNEXT)) {
 		gp->mode |= ATTR_WRAP;
 		tnewline(1);
+		gp = &term.line[term.c.y][term.c.x];
 	}
 
-	if(IS_SET(MODE_INSERT) && term.c.x+1 < term.col)
-		memmove(gp+1, gp, (term.col - term.c.x - 1) * sizeof(Glyph));
+	if(IS_SET(MODE_INSERT) && term.c.x+width < term.col)
+		memmove(gp+width, gp, (term.col - term.c.x - width) * sizeof(Glyph));
 
-	if(term.c.x+width > term.col)
+	if(term.c.x+width > term.col) {
 		tnewline(1);
+		gp = &term.line[term.c.y][term.c.x];
+	}
 
 	tsetchar(c, &term.c.attr, term.c.x, term.c.y);
 
@@ -2869,7 +2871,7 @@ wlloadfonts(char *fontstr, double fontsize) {
 	if(!pattern)
 		die("st: can't open font %s\n", fontstr);
 
-	if(fontsize > 0) {
+	if(fontsize > 1) {
 		FcPatternDel(pattern, FC_PIXEL_SIZE);
 		FcPatternDel(pattern, FC_SIZE);
 		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, (double)fontsize);
@@ -2970,7 +2972,7 @@ wlzoomabs(const Arg *arg) {
 	wlunloadfonts();
 	wlloadfonts(usedfont, arg->i);
 	cresize(0, 0);
-	redraw(0);
+	redraw();
 	/* XXX: Should the window size be updated here because wayland doesn't
 	 * have a notion of hints?
 	 * xhints();
@@ -3046,7 +3048,7 @@ void
 wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int winx = borderpx + x * wl.cw, winy = borderpx + y * wl.ch,
 	    width = charlen * wl.cw, xp, i;
-	int frcflags;
+	int frcflags, charexists;
 	int u8fl, u8fblen, u8cblen, doesexist;
 	char *u8c, *u8fs;
 	long unicodep;
@@ -3196,8 +3198,13 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 		/* Search the font cache. */
 		for(i = 0; i < frclen; i++) {
-			if(wld_font_ensure_char(frc[i].font, unicodep)
-					&& frc[i].flags == frcflags) {
+			charexists = wld_font_ensure_char(frc[i].font, unicodep);
+			/* Everything correct. */
+			if(charexists && frc[i].flags == frcflags)
+				break;
+			/* We got a default font for a not found glyph. */
+			if(!charexists && frc[i].flags == frcflags \
+					&& frc[i].unicodep == unicodep) {
 				break;
 			}
 		}
@@ -3228,8 +3235,8 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 					FcMatchPattern);
 			FcDefaultSubstitute(fcpattern);
 
-			fontpattern = FcFontSetMatch(0, fcsets,
-					FcTrue, fcpattern, &fcres);
+			fontpattern = FcFontSetMatch(0, fcsets, 1,
+					fcpattern, &fcres);
 
 			/*
 			 * Overwrite or create the new cache entry.
@@ -3237,11 +3244,13 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			if(frclen >= LEN(frc)) {
 				frclen = LEN(frc) - 1;
 				wld_font_close(frc[frclen].font);
+				frc[frclen].unicodep = 0;
 			}
 
 			frc[frclen].font = wld_font_open_pattern(wld.fontctx,
 					fontpattern);
 			frc[frclen].flags = frcflags;
+			frc[frclen].unicodep = unicodep;
 
 			i = frclen;
 			frclen++;
@@ -3346,15 +3355,8 @@ wlresettitle(void) {
 }
 
 void
-redraw(int timeout) {
-	struct timespec tv = {0, timeout * 1000};
-
-	/* TODO(wayland): Figure out if this function is necessary. */
+redraw(void) {
 	tfulldirt();
-
-	if(timeout > 0) {
-		nanosleep(&tv, NULL);
-	}
 }
 
 void
@@ -3911,8 +3913,8 @@ datasrctarget(void *data, struct wl_data_source *source,
 void
 datasrcsend(void *data, struct wl_data_source *source, const char *mimetype,
 		int32_t fd) {
-	char *buf = sel.clip;
-	int len = strlen(sel.clip);
+	char *buf = sel.primary;
+	int len = strlen(sel.primary);
 	ssize_t ret;
 	while ((ret = write(fd, buf, MIN(len, BUFSIZ))) > 0) {
 		len -= ret;
@@ -4020,7 +4022,7 @@ run(void) {
 
 void
 usage(void) {
-	die("%s " VERSION " (c) 2010-2014 st engineers\n" \
+	die("%s " VERSION " (c) 2010-2015 st engineers\n" \
 	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
 	"          [-i] [-t title] [-w windowid] [-e command ...]\n", argv0);
 }
