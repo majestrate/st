@@ -2166,8 +2166,7 @@ strhandle(void) {
 
 	term.esc &= ~(ESC_STR_END|ESC_STR);
 	strparse();
-	narg = strescseq.narg;
-	par = atoi(strescseq.args[0]);
+	par = (narg = strescseq.narg) ? atoi(strescseq.args[0]) : 0;
 
 	switch(strescseq.type) {
 	case ']': /* OSC -- Operating System Command */
@@ -4131,7 +4130,7 @@ run:
 	if(argc > 0) {
 		/* eat all remaining arguments */
 		opt_cmd = argv;
-		if(!opt_title)
+		if(!opt_title && !opt_line)
 			opt_title = basename(xstrdup(argv[0]));
 	}
 	setlocale(LC_CTYPE, "");
