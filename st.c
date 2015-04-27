@@ -1,4 +1,4 @@
-/* See LICENSE for licence details. */
+/* See LICENSE for license details. */
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -163,8 +163,7 @@ enum escape_state {
 
 enum window_state {
 	WIN_VISIBLE = 1,
-	WIN_REDRAW  = 2,
-	WIN_FOCUSED = 4
+	WIN_FOCUSED = 2
 };
 
 enum selection_type {
@@ -199,14 +198,14 @@ typedef struct {
 } TCursor;
 
 /* CSI Escape sequence structs */
-/* ESC '[' [[ [<priv>] <arg> [;]] <mode>] */
+/* ESC '[' [[ [<priv>] <arg> [;]] <mode> [<mode>]] */
 typedef struct {
 	char buf[ESC_BUF_SIZ]; /* raw string */
 	int len;               /* raw string length */
 	char priv;
 	int arg[ESC_ARG_SIZ];
 	int narg;              /* nb of args */
-	char mode;
+	char mode[2];
 } CSIEscape;
 
 /* STR Escape sequence structs */
@@ -269,6 +268,7 @@ typedef struct {
 	int cw; /* char width  */
 	int vis;
 	char state; /* focus, redraw, visible */
+	int cursor; /* cursor style */
 	struct wl_callback * framecb;
 } Wayland;
 
@@ -388,6 +388,7 @@ static void draw(void);
 static void redraw(void);
 static void drawregion(int, int, int, int);
 static void execsh(void);
+static void stty(void);
 static void sigchld(int);
 static void run(void);
 static void cresize(int, int);
@@ -396,7 +397,7 @@ static void csidump(void);
 static void csihandle(void);
 static void csiparse(void);
 static void csireset(void);
-static int eschandle(uchar ascii);
+static int eschandle(uchar);
 static void strdump(void);
 static void strhandle(void);
 static void strparse(void);
@@ -443,8 +444,9 @@ static void ttyread(void);
 static void ttyresize(void);
 static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
-static void tstrsequence(uchar c);
+static void tstrsequence(uchar);
 
+static inline uchar sixd_to_8bit(int);
 static void wldraws(char *, Glyph, int, int, int, int);
 static void wlclear(int, int, int, int);
 static void wldrawcursor(void);
@@ -454,7 +456,6 @@ static int wlsetcolorname(int, const char *);
 static void wlloadcursor(void);
 static int wlloadfont(Font *, FcPattern *);
 static void wlloadfonts(char *, double);
-static int wlloadfontset(Font *);
 static void wlsettitle(char *);
 static void wlresettitle(void);
 static void wlseturgency(int);
@@ -516,6 +517,8 @@ static char *getsel(void);
 static void selcopy(uint32_t);
 static void selscroll(int, int);
 static void selsnap(int, int *, int *, int);
+static int x2col(int);
+static int y2row(int);
 
 static size_t utf8decode(char *, long *, size_t);
 static long utf8decodebyte(char, size_t *);
@@ -568,6 +571,7 @@ static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
 static char *opt_font = NULL;
+static char *opt_line = NULL;
 static int oldbutton = 3; /* button event on startup: 3 = release */
 static int oldx, oldy;
 
@@ -703,7 +707,7 @@ utf8validate(long *u, size_t i) {
 	return i;
 }
 
-static void
+void
 selinit(void) {
 	sel.tclick1 = 0;
 	sel.tclick2 = 0;
@@ -713,7 +717,7 @@ selinit(void) {
 	sel.source = NULL;
 }
 
-static int
+int
 x2col(int x) {
 	x -= borderpx;
 	x /= wl.cw;
@@ -721,7 +725,7 @@ x2col(int x) {
 	return LIMIT(x, 0, term.col-1);
 }
 
-static int
+int
 y2row(int y) {
 	y -= borderpx;
 	y /= wl.ch;
@@ -729,7 +733,8 @@ y2row(int y) {
 	return LIMIT(y, 0, term.row-1);
 }
 
-static int tlinelen(int y) {
+int
+tlinelen(int y) {
 	int i = term.col;
 
 	if(term.line[y][i - 1].mode & ATTR_WRAP)
@@ -741,7 +746,7 @@ static int tlinelen(int y) {
 	return i;
 }
 
-static void
+void
 selnormalize(void) {
 	int i;
 
@@ -768,7 +773,7 @@ selnormalize(void) {
 		sel.ne.x = term.col - 1;
 }
 
-static inline bool
+bool
 selected(int x, int y) {
 	if(sel.type == SEL_RECTANGULAR)
 		return BETWEEN(y, sel.nb.y, sel.ne.y)
@@ -962,7 +967,7 @@ getsel(void) {
 	ptr = str = xmalloc(bufsize);
 
 	/* append every set & selected glyph to the selection */
-	for(y = sel.nb.y; y < sel.ne.y + 1; y++) {
+	for(y = sel.nb.y; y <= sel.ne.y; y++) {
 		linelen = tlinelen(y);
 
 		if(sel.type == SEL_RECTANGULAR) {
@@ -1149,10 +1154,54 @@ sigchld(int a) {
 	exit(EXIT_SUCCESS);
 }
 
+
+void
+stty(void)
+{
+	char cmd[_POSIX_ARG_MAX], **p, *q, *s;
+	size_t n, siz;
+
+	if((n = strlen(stty_args)) > sizeof(cmd)-1)
+		die("incorrect stty parameters\n");
+	memcpy(cmd, stty_args, n);
+	q = cmd + n;
+	siz = sizeof(cmd) - n;
+	for(p = opt_cmd; p && (s = *p); ++p) {
+		if((n = strlen(s)) > siz-1)
+			die("stty parameter length too long\n");
+		*q++ = ' ';
+		q = memcpy(q, s, n);
+		q += n;
+		siz-= n + 1;
+	}
+	*q = '\0';
+	system(cmd);
+}
+
 void
 ttynew(void) {
 	int m, s;
 	struct winsize w = {term.row, term.col, 0, 0};
+
+	if(opt_io) {
+		term.mode |= MODE_PRINT;
+		iofd = (!strcmp(opt_io, "-")) ?
+			  STDOUT_FILENO :
+			  open(opt_io, O_WRONLY | O_CREAT, 0666);
+		if(iofd < 0) {
+			fprintf(stderr, "Error opening %s:%s\n",
+				opt_io, strerror(errno));
+		}
+	}
+
+	if (opt_line) {
+		if((cmdfd = open(opt_line, O_RDWR)) < 0)
+			die("open line failed: %s\n", strerror(errno));
+		close(STDIN_FILENO);
+		dup(cmdfd);
+		stty();
+		return;
+	}
 
 	/* seems to work fine on linux, openbsd and freebsd */
 	if(openpty(&m, &s, NULL, NULL, &w) < 0)
@@ -1163,6 +1212,7 @@ ttynew(void) {
 		die("fork failed\n");
 		break;
 	case 0:
+		close(iofd);
 		setsid(); /* create a new process group */
 		dup2(s, STDIN_FILENO);
 		dup2(s, STDOUT_FILENO);
@@ -1177,16 +1227,6 @@ ttynew(void) {
 		close(s);
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
-		if(opt_io) {
-			term.mode |= MODE_PRINT;
-			iofd = (!strcmp(opt_io, "-")) ?
-				  STDOUT_FILENO :
-				  open(opt_io, O_WRONLY | O_CREAT, 0666);
-			if(iofd < 0) {
-				fprintf(stderr, "Error opening %s:%s\n",
-					opt_io, strerror(errno));
-			}
-		}
 		break;
 	}
 }
@@ -1320,7 +1360,7 @@ treset(void) {
 	term.top = 0;
 	term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
-	memset(term.trantbl, sizeof(term.trantbl), CS_USA);
+	memset(term.trantbl, CS_USA, sizeof(term.trantbl));
 	term.charset = 0;
 
 	for(i = 0; i < 2; i++) {
@@ -1454,7 +1494,8 @@ csiparse(void) {
 			break;
 		p++;
 	}
-	csiescseq.mode = *p;
+	csiescseq.mode[0] = *p++;
+	csiescseq.mode[1] = (p < csiescseq.buf+csiescseq.len) ? *p : '\0';
 }
 
 /* for absolute user moves, when decom is set */
@@ -1474,11 +1515,9 @@ tmoveto(int x, int y) {
 		miny = 0;
 		maxy = term.row - 1;
 	}
-	LIMIT(x, 0, term.col-1);
-	LIMIT(y, miny, maxy);
 	term.c.state &= ~CURSOR_WRAPNEXT;
-	term.c.x = x;
-	term.c.y = y;
+	term.c.x = LIMIT(x, 0, term.col-1);
+	term.c.y = LIMIT(y, miny, maxy);
 }
 
 void
@@ -1888,7 +1927,7 @@ csihandle(void) {
 	char buf[40];
 	int len;
 
-	switch(csiescseq.mode) {
+	switch(csiescseq.mode[0]) {
 	default:
 	unknown:
 		fprintf(stderr, "erresc: unknown csi ");
@@ -2076,6 +2115,19 @@ csihandle(void) {
 	case 'u': /* DECRC -- Restore cursor position (ANSI.SYS) */
 		tcursor(CURSOR_LOAD);
 		break;
+	case ' ':
+		switch (csiescseq.mode[1]) {
+			case 'q': /* DECSCUSR -- Set Cursor Style */
+				DEFAULT(csiescseq.arg[0], 1);
+				if (!BETWEEN(csiescseq.arg[0], 0, 6)) {
+					goto unknown;
+				}
+				wl.cursor = csiescseq.arg[0];
+				break;
+			default:
+				goto unknown;
+		}
+		break;
 	}
 }
 
@@ -2160,12 +2212,23 @@ strhandle(void) {
 
 void
 strparse(void) {
+	int c;
 	char *p = strescseq.buf;
 
 	strescseq.narg = 0;
 	strescseq.buf[strescseq.len] = '\0';
-	while(p && strescseq.narg < STR_ARG_SIZ)
-		strescseq.args[strescseq.narg++] = strsep(&p, ";");
+
+	if(*p == '\0')
+		return;
+
+	while(strescseq.narg < STR_ARG_SIZ) {
+		strescseq.args[strescseq.narg++] = p;
+		while((c = *p) != ';' && c != '\0')
+			++p;
+		if(c == '\0')
+			return;
+		*p++ = '\0';
+	}
 }
 
 void
@@ -2267,7 +2330,7 @@ tputtab(int n) {
 			for(--x; x > 0 && !term.tabs[x]; --x)
 				/* nothing */ ;
 	}
-	tmoveto(x, term.c.y);
+	term.c.x = LIMIT(x, 0, term.col-1);
 }
 
 void
@@ -2323,26 +2386,23 @@ tdectest(char c) {
 
 void
 tstrsequence(uchar c) {
-	if (c & 0x80) {
-		switch (c) {
-		case 0x90:   /* DCS -- Device Control String */
-			c = 'P';
-			break;
-		case 0x9f:   /* APC -- Application Program Command */
-			c = '_';
-			break;
-		case 0x9e:   /* PM -- Privacy Message */
-			c = '^';
-			break;
-		case 0x9d:   /* OSC -- Operating System Command */
-			c = ']';
-			break;
-		}
+	switch (c) {
+	case 0x90:   /* DCS -- Device Control String */
+		c = 'P';
+		break;
+	case 0x9f:   /* APC -- Application Program Command */
+		c = '_';
+		break;
+	case 0x9e:   /* PM -- Privacy Message */
+		c = '^';
+		break;
+	case 0x9d:   /* OSC -- Operating System Command */
+		c = ']';
+		break;
 	}
 	strreset();
 	strescseq.type = c;
 	term.esc |= ESC_STR;
-	return;
 }
 
 void
@@ -2426,7 +2486,6 @@ tcontrolcode(uchar ascii) {
 	}
 	/* only CAN, SUB, \a and C1 chars interrupt a sequence */
 	term.esc &= ~(ESC_STR_END|ESC_STR);
-	return;
 }
 
 /*
@@ -2529,7 +2588,6 @@ tputc(char *c, int len) {
 			c = "\357\277\275";	/* UTF_INVALID */
 			width = 1;
 		}
-		control = ISCONTROLC1(unicodep);
 		ascii = unicodep;
 	}
 
@@ -2544,7 +2602,7 @@ tputc(char *c, int len) {
 	 * character.
 	 */
 	if(term.esc & ESC_STR) {
-		if(width == 1 &&
+		if(len == 1 &&
 		   (ascii == '\a' || ascii == 030 ||
 		    ascii == 032  || ascii == 033 ||
 		    ISCONTROLC1(unicodep))) {
@@ -2649,7 +2707,6 @@ tresize(int col, int row) {
 	int i;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
-	int slide = term.c.y - row + 1;
 	bool *bp;
 	TCursor c;
 
@@ -2659,20 +2716,19 @@ tresize(int col, int row) {
 		return;
 	}
 
-	/* free unneeded rows */
-	i = 0;
-	if(slide > 0) {
-		/*
-		 * slide screen to keep cursor where we expect it -
-		 * tscrollup would work here, but we can optimize to
-		 * memmove because we're freeing the earlier lines
-		 */
-		for(/* i = 0 */; i < slide; i++) {
-			free(term.line[i]);
-			free(term.alt[i]);
-		}
-		memmove(term.line, term.line + slide, row * sizeof(Line));
-		memmove(term.alt, term.alt + slide, row * sizeof(Line));
+	/*
+	 * slide screen to keep cursor where we expect it -
+	 * tscrollup would work here, but we can optimize to
+	 * memmove because we're freeing the earlier lines
+	 */
+	for(i = 0; i <= term.c.y - row; i++) {
+		free(term.line[i]);
+		free(term.alt[i]);
+	}
+	/* ensure that both src and dst are not NULL */
+	if (i > 0) {
+		memmove(term.line, term.line + i, row * sizeof(Line));
+		memmove(term.alt, term.alt + i, row * sizeof(Line));
 	}
 	for(i += row; i < term.row; i++) {
 		free(term.line[i]);
@@ -2741,56 +2797,54 @@ wlresize(int col, int row) {
 	wl.buffer = object.ptr;
 }
 
-static inline uchar
+uchar
 sixd_to_8bit(int x) {
 	return x == 0 ? 0 : 0x37 + 0x28 * x;
+}
+
+bool
+wlloadcolor(int i, const char *name, uint32_t *color) {
+	if(!name) {
+		if(BETWEEN(i, 16, 255)) { /* 256 color */
+			if(i < 6*6*6+16) { /* same colors as xterm */
+				*color = 0xff << 24 | sixd_to_8bit(((i-16)/36)%6) << 16
+					| sixd_to_8bit(((i-16)/6)%6) << 8
+					| sixd_to_8bit(((i-16)/1)%6);
+			} else { /* greyscale */
+				*color = 0xff << 24 | (0x8 + 0xa * (i-(6*6*6+16))) * 0x10101;
+			}
+			return true;
+		} else
+			name = colorname[i];
+	}
+	return wld_lookup_named_color(name, color);
 }
 
 void
 wlloadcols(void) {
 	int i;
 
-	/* load colors [0-15] and [256-LEN(colorname)] (config.h) */
-	for(i = 0; i < LEN(colorname); i++) {
-		if(!colorname[i])
-			continue;
-		if(!wld_lookup_named_color(colorname[i], &dc.col[i]))
-			die("Could not find color '%s'\n", colorname[i]);
-	}
-
-	/* load colors [16-231] ; same colors as xterm */
-	for(i = 16; i < 6*6*6+16; i++) {
-		dc.col[i] = 0xff << 24 | sixd_to_8bit(((i-16)/36)%6) << 16
-			| sixd_to_8bit(((i-16)/6)%6) << 8
-			| sixd_to_8bit(((i-16)/1)%6);
-	}
-
-	/* load colors [232-255] ; grayscale */
-	for(; i < 256; i++) {
-		dc.col[i] = (0x8 + 0xa * (i-(6*6*6+16))) * 0x10101 | 0xff << 24;
-	}
+	for(i = 0; i < LEN(dc.col); i++)
+		if(!wlloadcolor(i, NULL, &dc.col[i])) {
+			if(colorname[i])
+				die("Could not allocate color '%s'\n", colorname[i]);
+			else
+				die("Could not allocate color %d\n", i);
+		}
 }
 
 int
 wlsetcolorname(int x, const char *name) {
-	if(!BETWEEN(x, 0, LEN(colorname)))
+	uint32_t color;
+
+	if(!BETWEEN(x, 0, LEN(dc.col)))
 		return 1;
 
-	if(!name) {
-		if(BETWEEN(x, 16, 16 + 215)) { /* 256 color */
-			dc.col[x] = 0xff << 24
-				| sixd_to_8bit(((x-16)/36)%6) << 16
-				| sixd_to_8bit(((x-16)/6)%6) << 8
-				| sixd_to_8bit(((x-16)/1)%6);
-			return 0;
-		} else if(BETWEEN(x, 16 + 216, 255)) { /* greyscale */
-			dc.col[x] = 0xff << 24 | ((0x8 + 0xa * (x - (16 + 216))) * 0x10101);
-			return 0;
-		} else { /* system colors */
-			name = colorname[x];
-		}
-	}
-	return wld_lookup_named_color(name, &dc.col[x]) ? 0 : 1;
+	if(!wlloadcolor(x, name, &color))
+		return 1;
+
+	dc.col[x] = color;
+	return 0;
 }
 
 static void wlloadcursor(void) {
@@ -2928,15 +2982,6 @@ wlloadfonts(char *fontstr, double fontsize) {
 		die("st: can't open font %s\n", fontstr);
 
 	FcPatternDestroy(pattern);
-}
-
-int
-wlloadfontset(Font *f) {
-	FcResult result;
-
-	if(!(f->set = FcFontSort(0, f->pattern, FcTrue, 0, &result)))
-		return 1;
-	return 0;
 }
 
 void
@@ -3212,7 +3257,8 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		/* Nothing was found. */
 		if(i >= frclen) {
 			if(!font->set)
-				wlloadfontset(font);
+				font->set = FcFontSort(0, font->pattern,
+				                       FcTrue, 0, &fcres);
 			fcsets[0] = font->set;
 
 			/*
@@ -3311,16 +3357,36 @@ wldrawcursor(void) {
 
 	/* draw the new one */
 	if(wl.state & WIN_FOCUSED) {
-		if(IS_SET(MODE_REVERSE)) {
-			g.mode |= ATTR_REVERSE;
-			g.fg = defaultcs;
-			g.bg = defaultfg;
-		}
+		switch (wl.cursor) {
+			case 0: /* Blinking Block */
+			case 1: /* Blinking Block (Default) */
+			case 2: /* Steady Block */
+				if(IS_SET(MODE_REVERSE)) {
+						g.mode |= ATTR_REVERSE;
+						g.fg = defaultcs;
+						g.bg = defaultfg;
+					}
 
-		sl = utf8len(g.c);
-		width = (term.line[term.c.y][curx].mode & ATTR_WIDE)\
-			? 2 : 1;
-		wldraws(g.c, g, term.c.x, term.c.y, width, sl);
+				sl = utf8len(g.c);
+				width = (term.line[term.c.y][curx].mode & ATTR_WIDE)\
+					? 2 : 1;
+				wldraws(g.c, g, term.c.x, term.c.y, width, sl);
+				break;
+			case 3: /* Blinking Underline */
+			case 4: /* Steady Underline */
+				wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+						borderpx + curx * wl.cw,
+						borderpx + (term.c.y + 1) * wl.ch - cursorthickness,
+						wl.cw, cursorthickness);
+				break;
+			case 5: /* Blinking bar */
+			case 6: /* Steady bar */
+				wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+						borderpx + curx * wl.cw,
+						borderpx + term.c.y * wl.ch,
+						cursorthickness, wl.ch);
+				break;
+		}
 	} else {
 		wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
 				borderpx + curx * wl.cw,
@@ -3438,7 +3504,7 @@ wlseturgency(int add) {
 	/* XXX: no urgency equivalent yet in wayland */
 }
 
-static inline bool
+bool
 match(uint mask, uint state) {
 	return mask == MOD_MASK_ANY || mask == (state & ~(ignoremod));
 }
@@ -3537,10 +3603,8 @@ regglobalremove(void *data, struct wl_registry *registry, uint32_t name) {
 void
 surfenter(void *data, struct wl_surface *surface, struct wl_output *output) {
 	wl.vis++;
-	if(!(wl.state & WIN_VISIBLE)) {
-		/* need a full redraw for next Expose, not just a buf copy */
-		wl.state |= WIN_VISIBLE | WIN_REDRAW;
-	}
+	if(!(wl.state & WIN_VISIBLE))
+		wl.state |= WIN_VISIBLE;
 }
 
 void
@@ -4022,15 +4086,16 @@ run(void) {
 
 void
 usage(void) {
-	die("%s " VERSION " (c) 2010-2015 st engineers\n" \
+	die("%s " VERSION " (c) 2010-2015 st engineers\n"
 	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
-	"          [-i] [-t title] [-w windowid] [-e command ...]\n", argv0);
+	"          [-i] [-t title] [-w windowid] [-e command ...] [command ...]\n"
+	"       st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
+	"          [-i] [-t title] [-w windowid] [-l line] [stty_args ...]\n",
+	argv0);
 }
 
 int
 main(int argc, char *argv[]) {
-	char *titles;
-
 	ARGBEGIN {
 	case 'a':
 		allowaltscreen = false;
@@ -4039,20 +4104,17 @@ main(int argc, char *argv[]) {
 		opt_class = EARGF(usage());
 		break;
 	case 'e':
-		/* eat all remaining arguments */
-		if(argc > 1) {
-			opt_cmd = &argv[1];
-			if(argv[1] != NULL && opt_title == NULL) {
-				titles = xstrdup(argv[1]);
-				opt_title = basename(titles);
-			}
-		}
+		if(argc > 1)
+			--argc, ++argv;
 		goto run;
 	case 'f':
 		opt_font = EARGF(usage());
 		break;
 	case 'o':
 		opt_io = EARGF(usage());
+		break;
+	case 'l':
+		opt_line = EARGF(usage());
 		break;
 	case 't':
 		opt_title = EARGF(usage());
@@ -4066,6 +4128,12 @@ main(int argc, char *argv[]) {
 	} ARGEND;
 
 run:
+	if(argc > 0) {
+		/* eat all remaining arguments */
+		opt_cmd = argv;
+		if(!opt_title)
+			opt_title = basename(xstrdup(argv[0]));
+	}
 	setlocale(LC_CTYPE, "");
 	tnew(80, 24);
 	wlinit();

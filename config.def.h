@@ -9,6 +9,7 @@ static char font[] = "Liberation Mono:pixelsize=12:antialias=false:autohint=fals
 static int borderpx = 2;
 static char shell[] = "/bin/sh";
 static char *utmp = NULL;
+static char stty_args[] = "stty raw -echo -iexten echonl";
 
 /* identification sequence returned in DA and DECID */
 static char vtiden[] = "\033[?6c";
@@ -40,6 +41,11 @@ static bool allowaltscreen = true;
  * attribute.
  */
 static unsigned int blinktimeout = 800;
+
+/*
+ * thickness of underline and bar cursors
+ */
+static unsigned int cursorthickness = 2;
 
 /*
  * bell volume. It must be a value between -100 and 100. Use 0 for disabling
@@ -262,7 +268,7 @@ static Key key[] = {
 	{ XKB_KEY_Delete,        MOD_MASK_SHIFT,  "\033[3;2~",    +1,    0,    0},
 	{ XKB_KEY_Delete,        MOD_MASK_ANY,    "\033[P",       -1,    0,    0},
 	{ XKB_KEY_Delete,        MOD_MASK_ANY,    "\033[3~",      +1,    0,    0},
-	{ XKB_KEY_Backspace,     MOD_MASK_NONE,   "\177",          0,    0,    0},
+	{ XKB_KEY_BackSpace,     MOD_MASK_NONE,   "\177",          0,    0,    0},
 	{ XKB_KEY_Home,          MOD_MASK_SHIFT,  "\033[2J",       0,   -1,    0},
 	{ XKB_KEY_Home,          MOD_MASK_SHIFT,  "\033[1;2H",     0,   +1,    0},
 	{ XKB_KEY_Home,          MOD_MASK_ANY,    "\033[H",        0,   -1,    0},
