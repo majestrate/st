@@ -2920,7 +2920,6 @@ wlloadfont(Font *f, FcPattern *pattern) {
 void
 wlloadfonts(char *fontstr, double fontsize) {
 	FcPattern *pattern;
-	FcResult r_sz, r_psz;
 	double fontval;
 	float ceilf(float);
 
@@ -2940,11 +2939,11 @@ wlloadfonts(char *fontstr, double fontsize) {
 		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, (double)fontsize);
 		usedfontsize = fontsize;
 	} else {
-		r_psz = FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval);
-		r_sz = FcPatternGetDouble(pattern, FC_SIZE, 0, &fontval);
-		if(r_psz == FcResultMatch) {
+		if(FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval) ==
+				FcResultMatch) {
 			usedfontsize = fontval;
-		} else if(r_sz == FcResultMatch) {
+		} else if(FcPatternGetDouble(pattern, FC_SIZE, 0, &fontval) ==
+				FcResultMatch) {
 			usedfontsize = -1;
 		} else {
 			/*
@@ -3026,14 +3025,14 @@ void
 wlzoom(const Arg *arg) {
 	Arg larg;
 
-	larg.i = usedfontsize + arg->i;
+	larg.f = usedfontsize + arg->f;
 	wlzoomabs(&larg);
 }
 
 void
 wlzoomabs(const Arg *arg) {
 	wlunloadfonts();
-	wlloadfonts(usedfont, arg->i);
+	wlloadfonts(usedfont, arg->f);
 	cresize(0, 0);
 	redraw();
 	/* XXX: Should the window size be updated here because wayland doesn't
@@ -3047,7 +3046,7 @@ wlzoomreset(const Arg *arg) {
 	Arg larg;
 
 	if(defaultfontsize > 0) {
-		larg.i = defaultfontsize;
+		larg.f = defaultfontsize;
 		wlzoomabs(&larg);
 	}
 }
