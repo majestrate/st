@@ -8,7 +8,6 @@
 #include <locale.h>
 #include <pwd.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -234,7 +233,7 @@ typedef struct {
 	int col;      /* nb col */
 	Line *line;   /* screen */
 	Line *alt;    /* alternate screen */
-	bool *dirty;  /* dirtyness of lines */
+	int *dirty;  /* dirtyness of lines */
 	TCursor c;    /* cursor */
 	int top;      /* top    scroll limit */
 	int bot;      /* bottom scroll limit */
@@ -243,8 +242,8 @@ typedef struct {
 	char trantbl[4]; /* charset table translation */
 	int charset;  /* current charset */
 	int icharset; /* selected charset for sequence */
-	bool numlock; /* lock numbers in keyboard */
-	bool *tabs;
+	int numlock; /* lock numbers in keyboard */
+	int *tabs;
 } Term;
 
 typedef struct {
@@ -335,7 +334,7 @@ typedef struct {
 
 	char *primary;
 	struct wl_data_source *source;
-	bool alt;
+	int alt;
 	uint32_t tclick1, tclick2;
 } Selection;
 
@@ -441,14 +440,14 @@ static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetdirt(int, int);
 static void tsetdirtattr(int);
-static void tsetmode(bool, bool, int *, int);
+static void tsetmode(int, int, int *, int);
 static void tfulldirt(void);
 static void techo(Rune);
 static void tcontrolcode(uchar );
 static void tdectest(char );
 static int32_t tdefcolor(int *, int *, int);
 static void tdeftran(char);
-static inline bool match(uint, uint);
+static inline int match(uint, uint);
 static void ttynew(void);
 static void ttyread(void);
 static void ttyresize(void);
@@ -523,7 +522,7 @@ static void datasrccancelled(void *, struct wl_data_source *);
 
 static void selinit(void);
 static void selnormalize(void);
-static inline bool selected(int, int);
+static inline int selected(int, int);
 static char *getsel(void);
 static void selcopy(uint32_t);
 static void selscroll(int, int);
@@ -794,10 +793,10 @@ selnormalize(void) {
 		sel.ne.x = term.col - 1;
 }
 
-bool
+int
 selected(int x, int y) {
 	if(sel.mode == SEL_EMPTY)
-		return false;
+		return 0;
 
 	if(sel.type == SEL_RECTANGULAR)
 		return BETWEEN(y, sel.nb.y, sel.ne.y)
@@ -811,7 +810,7 @@ selected(int x, int y) {
 void
 selsnap(int *x, int *y, int direction) {
 	int newx, newy, xt, yt;
-	bool delim, prevdelim;
+	int delim, prevdelim;
 	Glyph *gp, *prevgp;
 
 	switch(sel.snap) {
@@ -1364,7 +1363,7 @@ tfulldirt(void) {
 void
 tcursor(int mode) {
 	static TCursor c[2];
-	bool alt = IS_SET(MODE_ALTSCREEN);
+	int alt = IS_SET(MODE_ALTSCREEN);
 
 	if(mode == CURSOR_SAVE) {
 		c[alt] = term.c;
@@ -1823,9 +1822,9 @@ tsetscroll(int t, int b) {
 }
 
 void
-tsetmode(bool priv, bool set, int *args, int narg) {
+tsetmode(int priv, int set, int *args, int narg) {
 	int *lim, mode;
-	bool alt;
+	int alt;
 
 	for(lim = args + narg; args < lim; ++args) {
 		if(priv) {
@@ -2590,7 +2589,7 @@ eschandle(uchar ascii) {
 void
 tputc(Rune u) {
 	char c[UTF_SIZ];
-	bool control;
+	int control;
 	int width, len;
 	Glyph *gp;
 
@@ -2714,7 +2713,7 @@ tresize(int col, int row) {
 	int i;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
-	bool *bp;
+	int *bp;
 	TCursor c;
 
 	if(col < 1 || row < 1) {
@@ -2809,7 +2808,7 @@ sixd_to_8bit(int x) {
 	return x == 0 ? 0 : 0x37 + 0x28 * x;
 }
 
-bool
+int
 wlloadcolor(int i, const char *name, uint32_t *color) {
 	if(!name) {
 		if(BETWEEN(i, 16, 255)) { /* 256 color */
@@ -2988,15 +2987,6 @@ wlloadfonts(char *fontstr, double fontsize) {
 		die("st: can't open font %s\n", fontstr);
 
 	FcPatternDestroy(pattern);
-}
-
-int
-wlloadfontset(Font *f) {
-	FcResult result;
-
-	if(!(f->set = FcFontSort(0, f->pattern, FcTrue, 0, &result)))
-		return 1;
-	return 0;
 }
 
 void
@@ -3277,7 +3267,8 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		/* Nothing was found. */
 		if(i >= frclen) {
 			if(!font->set)
-				wlloadfontset(font);
+				font->set = FcFontSort(0, font->pattern,
+				                       1, 0, &fcres);
 			fcsets[0] = font->set;
 
 			/*
@@ -3293,8 +3284,7 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			FcCharSetAddChar(fccharset, unicodep);
 			FcPatternAddCharSet(fcpattern, FC_CHARSET,
 					fccharset);
-			FcPatternAddBool(fcpattern, FC_SCALABLE,
-					FcTrue);
+			FcPatternAddBool(fcpattern, FC_SCALABLE, 1);
 
 			FcConfigSubstitute(0, fcpattern,
 					FcMatchPattern);
@@ -3481,7 +3471,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
-	bool ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
+	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 
 	if(!(wl.state & WIN_VISIBLE))
 		return;
@@ -3524,7 +3514,7 @@ wlseturgency(int add) {
 	/* XXX: no urgency equivalent yet in wayland */
 }
 
-bool
+int
 match(uint mask, uint state) {
 	return mask == MOD_MASK_ANY || mask == (state & ~(ignoremod));
 }
@@ -4112,7 +4102,7 @@ int
 main(int argc, char *argv[]) {
 	ARGBEGIN {
 	case 'a':
-		allowaltscreen = false;
+		allowaltscreen = 0;
 		break;
 	case 'c':
 		opt_class = EARGF(usage());

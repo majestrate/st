@@ -34,7 +34,7 @@ static unsigned int keyrepeatdelay = 500;
 static unsigned int keyrepeatinterval = 25;
 
 /* alt screens */
-static bool allowaltscreen = true;
+static int allowaltscreen = 1;
 
 /*
  * blinking timeout (set to 0 to disable blinking) for the terminal blinking
