@@ -613,7 +613,8 @@ static Fontcache frc[16];
 static int frclen = 0;
 
 ssize_t
-xwrite(int fd, const char *s, size_t len) {
+xwrite(int fd, const char *s, size_t len)
+{
 	size_t aux = len;
 
 	while(len > 0) {
@@ -627,7 +628,8 @@ xwrite(int fd, const char *s, size_t len) {
 }
 
 void *
-xmalloc(size_t len) {
+xmalloc(size_t len)
+{
 	void *p = malloc(len);
 
 	if(!p)
@@ -637,7 +639,8 @@ xmalloc(size_t len) {
 }
 
 void *
-xrealloc(void *p, size_t len) {
+xrealloc(void *p, size_t len)
+{
 	if((p = realloc(p, len)) == NULL)
 		die("Out of memory\n");
 
@@ -645,7 +648,8 @@ xrealloc(void *p, size_t len) {
 }
 
 char *
-xstrdup(char *s) {
+xstrdup(char *s)
+{
 	if((s = strdup(s)) == NULL)
 		die("Out of memory\n");
 
@@ -653,7 +657,8 @@ xstrdup(char *s) {
 }
 
 size_t
-utf8decode(char *c, Rune *u, size_t clen) {
+utf8decode(char *c, Rune *u, size_t clen)
+{
 	size_t i, j, len, type;
 	Rune udecoded;
 
@@ -676,7 +681,8 @@ utf8decode(char *c, Rune *u, size_t clen) {
 }
 
 Rune
-utf8decodebyte(char c, size_t *i) {
+utf8decodebyte(char c, size_t *i)
+{
 	for(*i = 0; *i < LEN(utfmask); ++(*i))
 		if(((uchar)c & utfmask[*i]) == utfbyte[*i])
 			return (uchar)c & ~utfmask[*i];
@@ -684,7 +690,8 @@ utf8decodebyte(char c, size_t *i) {
 }
 
 size_t
-utf8encode(Rune u, char *c) {
+utf8encode(Rune u, char *c)
+{
 	size_t len, i;
 
 	len = utf8validate(&u, 0);
@@ -699,12 +706,14 @@ utf8encode(Rune u, char *c) {
 }
 
 char
-utf8encodebyte(Rune u, size_t i) {
+utf8encodebyte(Rune u, size_t i)
+{
 	return utfbyte[i] | (u & ~utfmask[i]);
 }
 
 char *
-utf8strchr(char *s, Rune u) {
+utf8strchr(char *s, Rune u)
+{
 	Rune r;
 	size_t i, j, len;
 
@@ -719,7 +728,8 @@ utf8strchr(char *s, Rune u) {
 }
 
 size_t
-utf8validate(Rune *u, size_t i) {
+utf8validate(Rune *u, size_t i)
+{
 	if(!BETWEEN(*u, utfmin[i], utfmax[i]) || BETWEEN(*u, 0xD800, 0xDFFF))
 		*u = UTF_INVALID;
 	for(i = 1; *u > utfmax[i]; ++i)
@@ -728,7 +738,8 @@ utf8validate(Rune *u, size_t i) {
 }
 
 void
-selinit(void) {
+selinit(void)
+{
 	sel.tclick1 = 0;
 	sel.tclick2 = 0;
 	sel.mode = SEL_IDLE;
@@ -738,7 +749,8 @@ selinit(void) {
 }
 
 int
-x2col(int x) {
+x2col(int x)
+{
 	x -= borderpx;
 	x /= wl.cw;
 
@@ -746,7 +758,8 @@ x2col(int x) {
 }
 
 int
-y2row(int y) {
+y2row(int y)
+{
 	y -= borderpx;
 	y /= wl.ch;
 
@@ -754,7 +767,8 @@ y2row(int y) {
 }
 
 int
-tlinelen(int y) {
+tlinelen(int y)
+{
 	int i = term.col;
 
 	if(term.line[y][i - 1].mode & ATTR_WRAP)
@@ -767,7 +781,8 @@ tlinelen(int y) {
 }
 
 void
-selnormalize(void) {
+selnormalize(void)
+{
 	int i;
 
 	if(sel.type == SEL_REGULAR && sel.ob.y != sel.oe.y) {
@@ -794,7 +809,8 @@ selnormalize(void) {
 }
 
 int
-selected(int x, int y) {
+selected(int x, int y)
+{
 	if(sel.mode == SEL_EMPTY)
 		return 0;
 
@@ -808,7 +824,8 @@ selected(int x, int y) {
 }
 
 void
-selsnap(int *x, int *y, int direction) {
+selsnap(int *x, int *y, int direction)
+{
 	int newx, newy, xt, yt;
 	int delim, prevdelim;
 	Glyph *gp, *prevgp;
@@ -880,7 +897,8 @@ selsnap(int *x, int *y, int direction) {
 }
 
 void
-getbuttoninfo(void) {
+getbuttoninfo(void)
+{
 	int type;
 	uint state = wl.xkb.mods & ~forceselmod;
 
@@ -900,7 +918,8 @@ getbuttoninfo(void) {
 }
 
 void
-wlmousereport(int button, bool release, int x, int y) {
+wlmousereport(int button, bool release, int x, int y)
+{
 	int len;
 	char buf[40];
 
@@ -924,7 +943,8 @@ wlmousereport(int button, bool release, int x, int y) {
 }
 
 void
-wlmousereportbutton(uint32_t button, uint32_t state) {
+wlmousereportbutton(uint32_t button, uint32_t state)
+{
 	bool release = state == WL_POINTER_BUTTON_STATE_RELEASED;
 
 	if(!IS_SET(MODE_MOUSESGR) && release) {
@@ -954,7 +974,8 @@ wlmousereportbutton(uint32_t button, uint32_t state) {
 }
 
 void
-wlmousereportmotion(wl_fixed_t fx, wl_fixed_t fy) {
+wlmousereportmotion(wl_fixed_t fx, wl_fixed_t fy)
+{
 	int x = x2col(wl_fixed_to_int(fx)), y = y2row(wl_fixed_to_int(fy));
 
 	if(x == oldx && y == oldy)
@@ -971,13 +992,15 @@ wlmousereportmotion(wl_fixed_t fx, wl_fixed_t fy) {
 }
 
 void
-wlmousereportaxis(uint32_t axis, wl_fixed_t amount) {
+wlmousereportaxis(uint32_t axis, wl_fixed_t amount)
+{
 	wlmousereport(64 + (axis == AXIS_VERTICAL ? 4 : 6)
 		+ (amount > 0 ? 1 : 0), false, oldx, oldy);
 }
 
 char *
-getsel(void) {
+getsel(void)
+{
 	char *str, *ptr;
 	int y, bufsize, lastx, linelen;
 	Glyph *gp, *last;
@@ -1027,12 +1050,14 @@ getsel(void) {
 }
 
 void
-selcopy(uint32_t serial) {
+selcopy(uint32_t serial)
+{
 	wlsetsel(getsel(), serial);
 }
 
 static inline void
-selwritebuf(char *buf, int len) {
+selwritebuf(char *buf, int len)
+{
 	char *repl = buf;
 
 	/*
@@ -1054,7 +1079,8 @@ selwritebuf(char *buf, int len) {
 }
 
 void
-selpaste(const Arg *dummy) {
+selpaste(const Arg *dummy)
+{
 	int fds[2], len, left;
 	char buf[BUFSIZ], *str;
 
@@ -1084,7 +1110,8 @@ selpaste(const Arg *dummy) {
 }
 
 void
-selclear(void) {
+selclear(void)
+{
 	if(sel.ob.x == -1)
 		return;
 	sel.mode = SEL_IDLE;
@@ -1093,7 +1120,8 @@ selclear(void) {
 }
 
 void
-wlsetsel(char *str, uint32_t serial) {
+wlsetsel(char *str, uint32_t serial)
+{
 	free(sel.primary);
 	sel.primary = str;
 
@@ -1108,7 +1136,8 @@ wlsetsel(char *str, uint32_t serial) {
 }
 
 void
-die(const char *errstr, ...) {
+die(const char *errstr, ...)
+{
 	va_list ap;
 
 	va_start(ap, errstr);
@@ -1118,7 +1147,8 @@ die(const char *errstr, ...) {
 }
 
 void
-execsh(void) {
+execsh(void)
+{
 	char **args, *sh, *prog;
 	const struct passwd *pw;
 
@@ -1163,7 +1193,8 @@ execsh(void) {
 }
 
 void
-sigchld(int a) {
+sigchld(int a)
+{
 	int stat;
 	pid_t p;
 
@@ -1204,7 +1235,8 @@ stty(void)
 }
 
 void
-ttynew(void) {
+ttynew(void)
+{
 	int m, s;
 	struct winsize w = {term.row, term.col, 0, 0};
 
@@ -1256,7 +1288,8 @@ ttynew(void) {
 }
 
 void
-ttyread(void) {
+ttyread(void)
+{
 	static char buf[BUFSIZ];
 	static int buflen = 0;
 	char *ptr;
@@ -1283,13 +1316,15 @@ ttyread(void) {
 }
 
 void
-ttywrite(const char *s, size_t n) {
+ttywrite(const char *s, size_t n)
+{
 	if(xwrite(cmdfd, s, n) == -1)
 		die("write error on tty: %s\n", strerror(errno));
 }
 
 void
-ttysend(char *s, size_t n) {
+ttysend(char *s, size_t n)
+{
 	int len;
 	Rune u;
 
@@ -1303,7 +1338,8 @@ ttysend(char *s, size_t n) {
 }
 
 void
-ttyresize(void) {
+ttyresize(void)
+{
 	struct winsize w;
 
 	w.ws_row = term.row;
@@ -1315,7 +1351,8 @@ ttyresize(void) {
 }
 
 int
-tattrset(int attr) {
+tattrset(int attr)
+{
 	int i, j;
 
 	for(i = 0; i < term.row-1; i++) {
@@ -1329,7 +1366,8 @@ tattrset(int attr) {
 }
 
 void
-tsetdirt(int top, int bot) {
+tsetdirt(int top, int bot)
+{
 	int i;
 
 	LIMIT(top, 0, term.row-1);
@@ -1342,7 +1380,8 @@ tsetdirt(int top, int bot) {
 }
 
 void
-tsetdirtattr(int attr) {
+tsetdirtattr(int attr)
+{
 	int i, j;
 
 	for(i = 0; i < term.row-1; i++) {
@@ -1356,12 +1395,14 @@ tsetdirtattr(int attr) {
 }
 
 void
-tfulldirt(void) {
+tfulldirt(void)
+{
 	tsetdirt(0, term.row-1);
 }
 
 void
-tcursor(int mode) {
+tcursor(int mode)
+{
 	static TCursor c[2];
 	int alt = IS_SET(MODE_ALTSCREEN);
 
@@ -1374,7 +1415,8 @@ tcursor(int mode) {
 }
 
 void
-treset(void) {
+treset(void)
+{
 	uint i;
 
 	term.c = (TCursor){{
@@ -1401,7 +1443,8 @@ treset(void) {
 }
 
 void
-tnew(int col, int row) {
+tnew(int col, int row)
+{
 	term = (Term){ .c = { .attr = { .fg = defaultfg, .bg = defaultbg } } };
 	tresize(col, row);
 	term.numlock = 1;
@@ -1410,7 +1453,8 @@ tnew(int col, int row) {
 }
 
 void
-tswapscreen(void) {
+tswapscreen(void)
+{
 	Line *tmp = term.line;
 
 	term.line = term.alt;
@@ -1420,7 +1464,8 @@ tswapscreen(void) {
 }
 
 void
-tscrolldown(int orig, int n) {
+tscrolldown(int orig, int n)
+{
 	int i;
 	Line temp;
 
@@ -1439,7 +1484,8 @@ tscrolldown(int orig, int n) {
 }
 
 void
-tscrollup(int orig, int n) {
+tscrollup(int orig, int n)
+{
 	int i;
 	Line temp;
 
@@ -1458,7 +1504,8 @@ tscrollup(int orig, int n) {
 }
 
 void
-selscroll(int orig, int n) {
+selscroll(int orig, int n)
+{
 	if(sel.ob.x == -1)
 		return;
 
@@ -1487,7 +1534,8 @@ selscroll(int orig, int n) {
 }
 
 void
-tnewline(int first_col) {
+tnewline(int first_col)
+{
 	int y = term.c.y;
 
 	if(y == term.bot) {
@@ -1499,7 +1547,8 @@ tnewline(int first_col) {
 }
 
 void
-csiparse(void) {
+csiparse(void)
+{
 	char *p = csiescseq.buf, *np;
 	long int v;
 
@@ -1529,12 +1578,14 @@ csiparse(void) {
 
 /* for absolute user moves, when decom is set */
 void
-tmoveato(int x, int y) {
+tmoveato(int x, int y)
+{
 	tmoveto(x, y + ((term.c.state & CURSOR_ORIGIN) ? term.top: 0));
 }
 
 void
-tmoveto(int x, int y) {
+tmoveto(int x, int y)
+{
 	int miny, maxy;
 
 	if(term.c.state & CURSOR_ORIGIN) {
@@ -1550,7 +1601,8 @@ tmoveto(int x, int y) {
 }
 
 void
-tsetchar(Rune u, Glyph *attr, int x, int y) {
+tsetchar(Rune u, Glyph *attr, int x, int y)
+{
 	static char *vt100_0[62] = { /* 0x41 - 0x7e */
 		"↑", "↓", "→", "←", "█", "▚", "☃", /* A - G */
 		0, 0, 0, 0, 0, 0, 0, 0, /* H - O */
@@ -1585,7 +1637,8 @@ tsetchar(Rune u, Glyph *attr, int x, int y) {
 }
 
 void
-tclearregion(int x1, int y1, int x2, int y2) {
+tclearregion(int x1, int y1, int x2, int y2)
+{
 	int x, y, temp;
 	Glyph *gp;
 
@@ -1614,7 +1667,8 @@ tclearregion(int x1, int y1, int x2, int y2) {
 }
 
 void
-tdeletechar(int n) {
+tdeletechar(int n)
+{
 	int dst, src, size;
 	Glyph *line;
 
@@ -1630,7 +1684,8 @@ tdeletechar(int n) {
 }
 
 void
-tinsertblank(int n) {
+tinsertblank(int n)
+{
 	int dst, src, size;
 	Glyph *line;
 
@@ -1646,19 +1701,22 @@ tinsertblank(int n) {
 }
 
 void
-tinsertblankline(int n) {
+tinsertblankline(int n)
+{
 	if(BETWEEN(term.c.y, term.top, term.bot))
 		tscrolldown(term.c.y, n);
 }
 
 void
-tdeleteline(int n) {
+tdeleteline(int n)
+{
 	if(BETWEEN(term.c.y, term.top, term.bot))
 		tscrollup(term.c.y, n);
 }
 
 int32_t
-tdefcolor(int *attr, int *npar, int l) {
+tdefcolor(int *attr, int *npar, int l)
+{
 	int32_t idx = -1;
 	uint r, g, b;
 
@@ -1707,7 +1765,8 @@ tdefcolor(int *attr, int *npar, int l) {
 }
 
 void
-tsetattr(int *attr, int l) {
+tsetattr(int *attr, int l)
+{
 	int i;
 	int32_t idx;
 
@@ -1807,7 +1866,8 @@ tsetattr(int *attr, int l) {
 }
 
 void
-tsetscroll(int t, int b) {
+tsetscroll(int t, int b)
+{
 	int temp;
 
 	LIMIT(t, 0, term.row-1);
@@ -1822,7 +1882,8 @@ tsetscroll(int t, int b) {
 }
 
 void
-tsetmode(int priv, int set, int *args, int narg) {
+tsetmode(int priv, int set, int *args, int narg)
+{
 	int *lim, mode;
 	int alt;
 
@@ -1950,7 +2011,8 @@ tsetmode(int priv, int set, int *args, int narg) {
 }
 
 void
-csihandle(void) {
+csihandle(void)
+{
 	char buf[40];
 	int len;
 
@@ -2159,7 +2221,8 @@ csihandle(void) {
 }
 
 void
-csidump(void) {
+csidump(void)
+{
 	int i;
 	uint c;
 
@@ -2182,12 +2245,14 @@ csidump(void) {
 }
 
 void
-csireset(void) {
+csireset(void)
+{
 	memset(&csiescseq, 0, sizeof(csiescseq));
 }
 
 void
-strhandle(void) {
+strhandle(void)
+{
 	char *p = NULL;
 	int j, narg, par;
 
@@ -2237,7 +2302,8 @@ strhandle(void) {
 }
 
 void
-strparse(void) {
+strparse(void)
+{
 	int c;
 	char *p = strescseq.buf;
 
@@ -2258,7 +2324,8 @@ strparse(void) {
 }
 
 void
-strdump(void) {
+strdump(void)
+{
 	int i;
 	uint c;
 
@@ -2283,12 +2350,14 @@ strdump(void) {
 }
 
 void
-strreset(void) {
+strreset(void)
+{
 	memset(&strescseq, 0, sizeof(strescseq));
 }
 
 void
-tprinter(char *s, size_t len) {
+tprinter(char *s, size_t len)
+{
 	if(iofd != -1 && xwrite(iofd, s, len) < 0) {
 		fprintf(stderr, "Error writing in %s:%s\n",
 			opt_io, strerror(errno));
@@ -2298,22 +2367,26 @@ tprinter(char *s, size_t len) {
 }
 
 void
-toggleprinter(const Arg *arg) {
+toggleprinter(const Arg *arg)
+{
 	term.mode ^= MODE_PRINT;
 }
 
 void
-printscreen(const Arg *arg) {
+printscreen(const Arg *arg)
+{
 	tdump();
 }
 
 void
-printsel(const Arg *arg) {
+printsel(const Arg *arg)
+{
 	tdumpsel();
 }
 
 void
-tdumpsel(void) {
+tdumpsel(void)
+{
 	char *ptr;
 
 	if((ptr = getsel())) {
@@ -2323,7 +2396,8 @@ tdumpsel(void) {
 }
 
 void
-tdumpline(int n) {
+tdumpline(int n)
+{
 	char buf[UTF_SIZ];
 	Glyph *bp, *end;
 
@@ -2337,7 +2411,8 @@ tdumpline(int n) {
 }
 
 void
-tdump(void) {
+tdump(void)
+{
 	int i;
 
 	for(i = 0; i < term.row; ++i)
@@ -2345,7 +2420,8 @@ tdump(void) {
 }
 
 void
-tputtab(int n) {
+tputtab(int n)
+{
 	uint x = term.c.x;
 
 	if(n > 0) {
@@ -2361,7 +2437,8 @@ tputtab(int n) {
 }
 
 void
-techo(Rune u) {
+techo(Rune u)
+{
 	if(ISCONTROL(u)) { /* control code */
 		if(u & 0x80) {
 			u &= 0x7f;
@@ -2377,7 +2454,8 @@ techo(Rune u) {
 }
 
 void
-tdeftran(char ascii) {
+tdeftran(char ascii)
+{
 	static char cs[] = "0B";
 	static int vcs[] = {CS_GRAPHIC0, CS_USA};
 	char *p;
@@ -2390,7 +2468,8 @@ tdeftran(char ascii) {
 }
 
 void
-tdectest(char c) {
+tdectest(char c)
+{
 	int x, y;
 
 	if(c == '8') { /* DEC screen alignment test. */
@@ -2402,7 +2481,8 @@ tdectest(char c) {
 }
 
 void
-tstrsequence(uchar c) {
+tstrsequence(uchar c)
+{
 	switch (c) {
 	case 0x90:   /* DCS -- Device Control String */
 		c = 'P';
@@ -2423,7 +2503,8 @@ tstrsequence(uchar c) {
 }
 
 void
-tcontrolcode(uchar ascii) {
+tcontrolcode(uchar ascii)
+{
 	switch(ascii) {
 	case '\t':   /* HT */
 		tputtab(1);
@@ -2508,7 +2589,8 @@ tcontrolcode(uchar ascii) {
  * more characters for this sequence, otherwise 0
  */
 int
-eschandle(uchar ascii) {
+eschandle(uchar ascii)
+{
 	switch(ascii) {
 	case '[':
 		term.esc |= ESC_CSI;
@@ -2587,7 +2669,8 @@ eschandle(uchar ascii) {
 }
 
 void
-tputc(Rune u) {
+tputc(Rune u)
+{
 	char c[UTF_SIZ];
 	int control;
 	int width, len;
@@ -2709,7 +2792,8 @@ tputc(Rune u) {
 }
 
 void
-tresize(int col, int row) {
+tresize(int col, int row)
+{
 	int i;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
@@ -2790,7 +2874,8 @@ tresize(int col, int row) {
 }
 
 void
-wlresize(int col, int row) {
+wlresize(int col, int row)
+{
 	union wld_object object;
 
 	wl.tw = MAX(1, col * wl.cw);
@@ -2804,12 +2889,14 @@ wlresize(int col, int row) {
 }
 
 uchar
-sixd_to_8bit(int x) {
+sixd_to_8bit(int x)
+{
 	return x == 0 ? 0 : 0x37 + 0x28 * x;
 }
 
 int
-wlloadcolor(int i, const char *name, uint32_t *color) {
+wlloadcolor(int i, const char *name, uint32_t *color)
+{
 	if(!name) {
 		if(BETWEEN(i, 16, 255)) { /* 256 color */
 			if(i < 6*6*6+16) { /* same colors as xterm */
@@ -2827,7 +2914,8 @@ wlloadcolor(int i, const char *name, uint32_t *color) {
 }
 
 void
-wlloadcols(void) {
+wlloadcols(void)
+{
 	int i;
 
 	for(i = 0; i < LEN(dc.col); i++)
@@ -2840,7 +2928,8 @@ wlloadcols(void) {
 }
 
 int
-wlsetcolorname(int x, const char *name) {
+wlsetcolorname(int x, const char *name)
+{
 	uint32_t color;
 
 	if(!BETWEEN(x, 0, LEN(dc.col)))
@@ -2853,7 +2942,8 @@ wlsetcolorname(int x, const char *name) {
 	return 0;
 }
 
-static void wlloadcursor(void) {
+static void wlloadcursor(void)
+{
 	char *names[] = { "xterm", "ibeam", "text" };
 	int i;
 
@@ -2868,7 +2958,8 @@ static void wlloadcursor(void) {
 }
 
 void
-wltermclear(int col1, int row1, int col2, int row2) {
+wltermclear(int col1, int row1, int col2, int row2)
+{
 	uint32_t color = dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
 
 	wld_fill_rectangle(wld.renderer, color, borderpx + col1 * wl.cw,
@@ -2880,14 +2971,16 @@ wltermclear(int col1, int row1, int col2, int row2) {
  * Absolute coordinates.
  */
 void
-wlclear(int x1, int y1, int x2, int y2) {
+wlclear(int x1, int y1, int x2, int y2)
+{
 	uint32_t color = dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
 
 	wld_fill_rectangle(wld.renderer, color, x1, y1, x2 - x1, y2 - y1);
 }
 
 int
-wlloadfont(Font *f, FcPattern *pattern) {
+wlloadfont(Font *f, FcPattern *pattern)
+{
 	FcPattern *match;
 	FcResult result;
 
@@ -2915,7 +3008,8 @@ wlloadfont(Font *f, FcPattern *pattern) {
 }
 
 void
-wlloadfonts(char *fontstr, double fontsize) {
+wlloadfonts(char *fontstr, double fontsize)
+{
 	FcPattern *pattern;
 	double fontval;
 	float ceilf(float);
@@ -2990,7 +3084,8 @@ wlloadfonts(char *fontstr, double fontsize) {
 }
 
 void
-wlunloadfont(Font *f) {
+wlunloadfont(Font *f)
+{
 	wld_font_close(f->match);
 	FcPatternDestroy(f->pattern);
 	if(f->set)
@@ -2998,7 +3093,8 @@ wlunloadfont(Font *f) {
 }
 
 void
-wlunloadfonts(void) {
+wlunloadfonts(void)
+{
 	/* Free the loaded fonts in the font cache.  */
 	while(frclen > 0)
 		wld_font_close(frc[--frclen].font);
@@ -3010,7 +3106,8 @@ wlunloadfonts(void) {
 }
 
 void
-wlzoom(const Arg *arg) {
+wlzoom(const Arg *arg)
+{
 	Arg larg;
 
 	larg.f = usedfontsize + arg->f;
@@ -3018,7 +3115,8 @@ wlzoom(const Arg *arg) {
 }
 
 void
-wlzoomabs(const Arg *arg) {
+wlzoomabs(const Arg *arg)
+{
 	wlunloadfonts();
 	wlloadfonts(usedfont, arg->f);
 	cresize(0, 0);
@@ -3030,7 +3128,8 @@ wlzoomabs(const Arg *arg) {
 }
 
 void
-wlzoomreset(const Arg *arg) {
+wlzoomreset(const Arg *arg)
+{
 	Arg larg;
 
 	if(defaultfontsize > 0) {
@@ -3040,7 +3139,8 @@ wlzoomreset(const Arg *arg) {
 }
 
 void
-wlinit(void) {
+wlinit(void)
+{
 	struct wl_registry *registry;
 
 	if(!(wl.dpy = wl_display_connect(NULL)))
@@ -3100,7 +3200,8 @@ wlinit(void) {
  */
 
 void
-wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
+wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
+{
 	int winx = borderpx + x * wl.cw, winy = borderpx + y * wl.ch,
 	    width = charlen * wl.cw, xp, i;
 	int frcflags, charexists;
@@ -3333,7 +3434,8 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 }
 
 void
-wldrawglyph(Glyph g, int x, int y) {
+wldrawglyph(Glyph g, int x, int y)
+{
 	static char buf[UTF_SIZ];
 	size_t len = utf8encode(g.u, buf);
 	int width = g.mode & ATTR_WIDE ? 2 : 1;
@@ -3342,7 +3444,8 @@ wldrawglyph(Glyph g, int x, int y) {
 }
 
 void
-wldrawcursor(void) {
+wldrawcursor(void)
+{
 	static int oldx = 0, oldy = 0;
 	int curx;
 	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs};
@@ -3424,22 +3527,26 @@ wldrawcursor(void) {
 }
 
 void
-wlsettitle(char *title) {
+wlsettitle(char *title)
+{
 	xdg_surface_set_title(wl.xdgsurface, title);
 }
 
 void
-wlresettitle(void) {
+wlresettitle(void)
+{
 	wlsettitle(opt_title ? opt_title : "st");
 }
 
 void
-redraw(void) {
+redraw(void)
+{
 	tfulldirt();
 }
 
 void
-draw(void) {
+draw(void)
+{
 	int y, y0;
 
 	for(y = 0; y <= term.bot; ++y) {
@@ -3467,7 +3574,8 @@ draw(void) {
 }
 
 void
-drawregion(int x1, int y1, int x2, int y2) {
+drawregion(int x1, int y1, int x2, int y2)
+{
 	int ic, ib, x, y, ox;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
@@ -3510,22 +3618,26 @@ drawregion(int x1, int y1, int x2, int y2) {
 }
 
 void
-wlseturgency(int add) {
+wlseturgency(int add)
+{
 	/* XXX: no urgency equivalent yet in wayland */
 }
 
 int
-match(uint mask, uint state) {
+match(uint mask, uint state)
+{
 	return mask == MOD_MASK_ANY || mask == (state & ~(ignoremod));
 }
 
 void
-numlock(const Arg *dummy) {
+numlock(const Arg *dummy)
+{
 	term.numlock ^= 1;
 }
 
 char*
-kmap(xkb_keysym_t k, uint state) {
+kmap(xkb_keysym_t k, uint state)
+{
 	Key *kp;
 	int i;
 
@@ -3564,7 +3676,8 @@ kmap(xkb_keysym_t k, uint state) {
 }
 
 void
-cresize(int width, int height) {
+cresize(int width, int height)
+{
 	int col, row;
 
 	if(width != 0)
@@ -3582,7 +3695,8 @@ cresize(int width, int height) {
 
 void
 regglobal(void *data, struct wl_registry *registry, uint32_t name,
-	  const char *interface, uint32_t version) {
+          const char *interface, uint32_t version)
+{
 	if(strcmp(interface, "wl_compositor") == 0) {
 		wl.cmp = wl_registry_bind(registry, name,
 				&wl_compositor_interface, 3);
@@ -3607,24 +3721,28 @@ regglobal(void *data, struct wl_registry *registry, uint32_t name,
 }
 
 void
-regglobalremove(void *data, struct wl_registry *registry, uint32_t name) {
+regglobalremove(void *data, struct wl_registry *registry, uint32_t name)
+{
 }
 
 void
-surfenter(void *data, struct wl_surface *surface, struct wl_output *output) {
+surfenter(void *data, struct wl_surface *surface, struct wl_output *output)
+{
 	wl.vis++;
 	if(!(wl.state & WIN_VISIBLE))
 		wl.state |= WIN_VISIBLE;
 }
 
 void
-surfleave(void *data, struct wl_surface *surface, struct wl_output *output) {
+surfleave(void *data, struct wl_surface *surface, struct wl_output *output)
+{
 	if (--wl.vis == 0)
 		wl.state &= ~WIN_VISIBLE;
 }
 
 void
-framedone(void *data, struct wl_callback *callback, uint32_t msecs) {
+framedone(void *data, struct wl_callback *callback, uint32_t msecs)
+{
 	wl_callback_destroy(callback);
 	wl.framecb = NULL;
 	if(needdraw) {
@@ -3633,8 +3751,9 @@ framedone(void *data, struct wl_callback *callback, uint32_t msecs) {
 }
 
 void
-kbdkeymap(void *data, struct wl_keyboard *keyboard, uint32_t format,
-	  int32_t fd, uint32_t size) {
+kbdkeymap(void *data, struct wl_keyboard *keyboard, uint32_t format, int32_t fd,
+          uint32_t size)
+{
 	char *string;
 
 	if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
@@ -3665,7 +3784,8 @@ kbdkeymap(void *data, struct wl_keyboard *keyboard, uint32_t format,
 
 void
 kbdenter(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-	 struct wl_surface *surface, struct wl_array *keys) {
+         struct wl_surface *surface, struct wl_array *keys)
+{
 	wl.state |= WIN_FOCUSED;
 	if(IS_SET(MODE_FOCUS))
 		ttywrite("\033[I", 3);
@@ -3675,7 +3795,8 @@ kbdenter(void *data, struct wl_keyboard *keyboard, uint32_t serial,
 
 void
 kbdleave(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-	 struct wl_surface *surface) {
+	 struct wl_surface *surface)
+{
 	/* selection offers are invalidated when we lose keyboard focus */
 	wl.seloffer = NULL;
 	wl.state &= ~WIN_FOCUSED;
@@ -3689,7 +3810,8 @@ kbdleave(void *data, struct wl_keyboard *keyboard, uint32_t serial,
 
 void
 kbdkey(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time,
-       uint32_t key, uint32_t state) {
+       uint32_t key, uint32_t state)
+{
 	xkb_keysym_t ksym;
 	char buf[32], *str;
 	int len;
@@ -3763,7 +3885,8 @@ send:
 
 void
 kbdmodifiers(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-	     uint32_t dep, uint32_t lat, uint32_t lck, uint32_t group) {
+             uint32_t dep, uint32_t lat, uint32_t lck, uint32_t group)
+{
 	xkb_mod_mask_t mod_mask;
 
 	xkb_state_update_mask(wl.xkb.state, dep, lat, lck, group, 0, 0);
@@ -3782,15 +3905,17 @@ kbdmodifiers(void *data, struct wl_keyboard *keyboard, uint32_t serial,
 }
 
 void
-kbdrepeatinfo(void *data, struct wl_keyboard *keyboard,
-		int32_t rate, int32_t delay) {
+kbdrepeatinfo(void *data, struct wl_keyboard *keyboard, int32_t rate,
+              int32_t delay)
+{
 	keyrepeatdelay = delay;
 	keyrepeatinterval = 1000 / rate;
 }
 
 void
 ptrenter(void *data, struct wl_pointer *pointer, uint32_t serial,
-	 struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y) {
+         struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y)
+{
 	struct wl_cursor_image *img = cursor.cursor->images[0];
 	struct wl_buffer *buffer;
 
@@ -3804,11 +3929,14 @@ ptrenter(void *data, struct wl_pointer *pointer, uint32_t serial,
 
 void
 ptrleave(void *data, struct wl_pointer *pointer, uint32_t serial,
-		struct wl_surface *surface) { }
+         struct wl_surface *surface)
+{
+}
 
 void
 ptrmotion(void *data, struct wl_pointer * pointer, uint32_t serial,
-		wl_fixed_t x, wl_fixed_t y) {
+          wl_fixed_t x, wl_fixed_t y)
+{
 	int oldey, oldex, oldsby, oldsey;
 
 	if(IS_SET(MODE_MOUSE)) {
@@ -3835,7 +3963,8 @@ ptrmotion(void *data, struct wl_pointer * pointer, uint32_t serial,
 
 void
 ptrbutton(void * data, struct wl_pointer * pointer, uint32_t serial,
-		uint32_t time, uint32_t button, uint32_t state) {
+          uint32_t time, uint32_t button, uint32_t state)
+{
 	Mousekey *mk;
 
 	if(IS_SET(MODE_MOUSE) && !(wl.xkb.mods & forceselmod)) {
@@ -3898,8 +4027,9 @@ ptrbutton(void * data, struct wl_pointer * pointer, uint32_t serial,
 }
 
 void
-ptraxis(void * data, struct wl_pointer * pointer, uint32_t time,
-		uint32_t axis, wl_fixed_t value) {
+ptraxis(void * data, struct wl_pointer * pointer, uint32_t time, uint32_t axis,
+        wl_fixed_t value)
+{
 	Axiskey *ak;
 	int dir = value > 0 ? +1 : -1;
 
@@ -3918,13 +4048,15 @@ ptraxis(void * data, struct wl_pointer * pointer, uint32_t time,
 }
 
 void
-xdgshellping(void *data, struct xdg_shell *shell, uint32_t serial) {
+xdgshellping(void *data, struct xdg_shell *shell, uint32_t serial)
+{
 	xdg_shell_pong(shell, serial);
 }
 
 void
 xdgsurfconfigure(void *data, struct xdg_surface *surf, int32_t w, int32_t h,
-		struct wl_array *states, uint32_t serial) {
+                 struct wl_array *states, uint32_t serial)
+{
 	xdg_surface_ack_configure(surf, serial);
 	if(w == wl.w && h == wl.h)
 		return;
@@ -3933,34 +4065,45 @@ xdgsurfconfigure(void *data, struct xdg_surface *surf, int32_t w, int32_t h,
 }
 
 void
-xdgsurfclose(void *data, struct xdg_surface *surf) {
+xdgsurfclose(void *data, struct xdg_surface *surf)
+{
 	exit(0);
 }
 
 void
 datadevoffer(void *data, struct wl_data_device *datadev,
-	     struct wl_data_offer *offer) {
+             struct wl_data_offer *offer)
+{
 	wl_data_offer_add_listener(offer, &dataofferlistener, NULL);
 }
 
 void
 datadeventer(void *data, struct wl_data_device *datadev, uint32_t serial,
 		struct wl_surface *surf, wl_fixed_t x, wl_fixed_t y,
-		struct wl_data_offer *offer) { }
+		struct wl_data_offer *offer)
+{
+}
 
 void
-datadevleave(void *data, struct wl_data_device *datadev) { }
+datadevleave(void *data, struct wl_data_device *datadev)
+{
+}
 
 void
 datadevmotion(void *data, struct wl_data_device *datadev, uint32_t time,
-		wl_fixed_t x, wl_fixed_t y) { }
+              wl_fixed_t x, wl_fixed_t y)
+{
+}
 
 void
-datadevdrop(void *data, struct wl_data_device *datadev) { }
+datadevdrop(void *data, struct wl_data_device *datadev)
+{
+}
 
 void
 datadevselection(void *data, struct wl_data_device *datadev,
-		struct wl_data_offer *offer) {
+                 struct wl_data_offer *offer)
+{
 	if (offer && (uintptr_t) wl_data_offer_get_user_data(offer) == 1)
 		wl.seloffer = offer;
 	else
@@ -3968,19 +4111,22 @@ datadevselection(void *data, struct wl_data_device *datadev,
 }
 
 void
-dataofferoffer(void *data, struct wl_data_offer *offer, const char *mimetype) {
+dataofferoffer(void *data, struct wl_data_offer *offer, const char *mimetype)
+{
 	/* mark the offer as usable if it supports plain text */
 	if (strncmp(mimetype, "text/plain", 10) == 0)
 		wl_data_offer_set_user_data(offer, (void *)(uintptr_t) 1);
 }
 
 void
-datasrctarget(void *data, struct wl_data_source *source,
-		const char *mimetype) { }
+datasrctarget(void *data, struct wl_data_source *source, const char *mimetype)
+{
+}
 
 void
 datasrcsend(void *data, struct wl_data_source *source, const char *mimetype,
-		int32_t fd) {
+            int32_t fd)
+{
 	char *buf = sel.primary;
 	int len = strlen(sel.primary);
 	ssize_t ret;
@@ -3992,7 +4138,8 @@ datasrcsend(void *data, struct wl_data_source *source, const char *mimetype,
 }
 
 void
-datasrccancelled(void *data, struct wl_data_source *source) {
+datasrccancelled(void *data, struct wl_data_source *source)
+{
 	if (sel.source == source) {
 		sel.source = NULL;
 		selclear();
@@ -4001,7 +4148,8 @@ datasrccancelled(void *data, struct wl_data_source *source) {
 }
 
 void
-run(void) {
+run(void)
+{
 	fd_set rfd;
 	int wlfd = wl_display_get_fd(wl.dpy), blinkset = 0;
 	struct timespec drawtimeout, *tv = NULL, now, last, lastblink;
@@ -4089,7 +4237,8 @@ run(void) {
 }
 
 void
-usage(void) {
+usage(void)
+{
 	die("%s " VERSION " (c) 2010-2015 st engineers\n"
 	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
 	"          [-i] [-t title] [-w windowid] [-e command ...] [command ...]\n"
@@ -4099,7 +4248,8 @@ usage(void) {
 }
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
 	ARGBEGIN {
 	case 'a':
 		allowaltscreen = 0;
