@@ -4125,6 +4125,8 @@ xdgsurfconfigure(void *data, struct xdg_surface *surf, int32_t w, int32_t h,
 void
 xdgsurfclose(void *data, struct xdg_surface *surf)
 {
+	/* Send SIGHUP to shell */
+	kill(pid, SIGHUP);
 	exit(0);
 }
 
