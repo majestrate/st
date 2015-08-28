@@ -107,6 +107,12 @@ static unsigned int defaultfg = 7;
 static unsigned int defaultbg = 0;
 static unsigned int defaultcs = 256;
 
+
+/*
+ * Default shape of the mouse cursor
+ */
+static char mouseshape[] = "xterm";
+
 /*
  * Colors used, when the specific fg == defaultfg. So in reverse mode this
  * will reverse too. Another logic would only make the simple feature too

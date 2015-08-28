@@ -3004,15 +3004,13 @@ wlsetcolorname(int x, const char *name)
 
 static void wlloadcursor(void)
 {
-	char *names[] = { "xterm", "ibeam", "text" };
+	char *names[] = { mouseshape, "xterm", "ibeam", "text" };
 	int i;
 
 	cursor.theme = wl_cursor_theme_load(NULL, 32, wl.shm);
 
-	for (i = 0; !cursor.cursor && i < LEN(names); i++) {
-		cursor.cursor = wl_cursor_theme_get_cursor(cursor.theme,
-				names[i]);
-	}
+	for (i = 0; !cursor.cursor && i < LEN(names); i++)
+		cursor.cursor = wl_cursor_theme_get_cursor(cursor.theme, names[i]);
 
 	cursor.surface = wl_compositor_create_surface(wl.cmp);
 }
