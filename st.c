@@ -617,7 +617,8 @@ static int frclen = 0;
 ssize_t
 xwrite(int fd, const char *s, size_t len)
 {
-	size_t aux = len, r;
+	size_t aux = len;
+	ssize_t r;
 
 	while (len > 0) {
 		r = write(fd, s, len);
@@ -1169,9 +1170,8 @@ execsh(void)
 			die("who are you?\n");
 	}
 
-	if (!(sh = getenv("SHELL"))) {
+	if ((sh = getenv("SHELL")) == NULL)
 		sh = (pw->pw_shell[0]) ? pw->pw_shell : shell;
-	}
 
 	if (opt_cmd)
 		prog = opt_cmd[0];
@@ -4301,9 +4301,11 @@ usage(void)
 {
 	die("%s " VERSION " (c) 2010-2015 st engineers\n"
 	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
-	"          [-i] [-t title] [-w windowid] [-e command ...] [command ...]\n"
+	"          [-i] [-t title] [-T title] [-w windowid] [-e command ...]"
+	" [command ...]\n"
 	"       st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
-	"          [-i] [-t title] [-w windowid] [-l line] [stty_args ...]\n",
+	"          [-i] [-t title] [-T title] [-w windowid] [-l line]"
+	" [stty_args ...]\n",
 	argv0);
 }
 
@@ -4331,6 +4333,7 @@ main(int argc, char *argv[])
 		opt_line = EARGF(usage());
 		break;
 	case 't':
+	case 'T':
 		opt_title = EARGF(usage());
 		break;
 	case 'w':
