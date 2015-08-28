@@ -68,26 +68,28 @@ char *argv0;
 #define AXIS_HORIZONTAL	WL_POINTER_AXIS_HORIZONTAL_SCROLL
 
 /* macros */
-#define MIN(a, b)  ((a) < (b) ? (a) : (b))
-#define MAX(a, b)  ((a) < (b) ? (b) : (a))
-#define LEN(a)     (sizeof(a) / sizeof(a)[0])
-#define DEFAULT(a, b)     (a) = (a) ? (a) : (b)
-#define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
-#define ISCONTROLC0(c) (BETWEEN(c, 0, 0x1f) || (c) == '\177')
-#define ISCONTROLC1(c) (BETWEEN(c, 0x80, 0x9f))
-#define ISCONTROL(c) (ISCONTROLC0(c) || ISCONTROLC1(c))
-#define ISDELIM(u) (utf8strchr(worddelimiters, u) != NULL)
-#define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
-#define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
-#define IS_SET(flag) ((term.mode & (flag)) != 0)
-#define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_nsec-t2.tv_nsec)/1E6)
-#define MODBIT(x, set, bit) ((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
+#define MIN(a, b)		((a) < (b) ? (a) : (b))
+#define MAX(a, b)		((a) < (b) ? (b) : (a))
+#define LEN(a)			(sizeof(a) / sizeof(a)[0])
+#define DEFAULT(a, b)		(a) = (a) ? (a) : (b)
+#define BETWEEN(x, a, b)	((a) <= (x) && (x) <= (b))
+#define ISCONTROLC0(c)		(BETWEEN(c, 0, 0x1f) || (c) == '\177')
+#define ISCONTROLC1(c)		(BETWEEN(c, 0x80, 0x9f))
+#define ISCONTROL(c)		(ISCONTROLC0(c) || ISCONTROLC1(c))
+#define ISDELIM(u)		(utf8strchr(worddelimiters, u) != NULL)
+#define LIMIT(x, a, b)		(x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
+#define ATTRCMP(a, b)		((a).mode != (b).mode || (a).fg != (b).fg || \
+				(a).bg != (b).bg)
+#define IS_SET(flag)		((term.mode & (flag)) != 0)
+#define TIMEDIFF(t1, t2)	((t1.tv_sec-t2.tv_sec)*1000 + \
+				(t1.tv_nsec-t2.tv_nsec)/1E6)
+#define MODBIT(x, set, bit)	((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
 
-#define TRUECOLOR(r,g,b) (1 << 24 | (r) << 16 | (g) << 8 | (b))
-#define IS_TRUECOL(x)    (1 << 24 & (x))
-#define TRUERED(x)       (((x) & 0xff0000) >> 8)
-#define TRUEGREEN(x)     (((x) & 0xff00))
-#define TRUEBLUE(x)      (((x) & 0xff) << 8)
+#define TRUECOLOR(r,g,b)	(1 << 24 | (r) << 16 | (g) << 8 | (b))
+#define IS_TRUECOL(x)		(1 << 24 & (x))
+#define TRUERED(x)		(((x) & 0xff0000) >> 8)
+#define TRUEGREEN(x)		(((x) & 0xff00))
+#define TRUEBLUE(x)		(((x) & 0xff) << 8)
 
 
 enum glyph_attribute {
@@ -615,15 +617,16 @@ static int frclen = 0;
 ssize_t
 xwrite(int fd, const char *s, size_t len)
 {
-	size_t aux = len;
+	size_t aux = len, r;
 
 	while (len > 0) {
-		ssize_t r = write(fd, s, len);
+		r = write(fd, s, len);
 		if (r < 0)
 			return r;
 		len -= r;
 		s += r;
 	}
+
 	return aux;
 }
 
@@ -677,6 +680,7 @@ utf8decode(char *c, Rune *u, size_t clen)
 		return 0;
 	*u = udecoded;
 	utf8validate(u, len);
+
 	return len;
 }
 
@@ -686,6 +690,7 @@ utf8decodebyte(char c, size_t *i)
 	for (*i = 0; *i < LEN(utfmask); ++(*i))
 		if (((uchar)c & utfmask[*i]) == utfbyte[*i])
 			return (uchar)c & ~utfmask[*i];
+
 	return 0;
 }
 
@@ -697,11 +702,13 @@ utf8encode(Rune u, char *c)
 	len = utf8validate(&u, 0);
 	if (len > UTF_SIZ)
 		return 0;
+
 	for (i = len - 1; i != 0; --i) {
 		c[i] = utf8encodebyte(u, 0);
 		u >>= 6;
 	}
 	c[0] = utf8encodebyte(u, len);
+
 	return len;
 }
 
@@ -724,6 +731,7 @@ utf8strchr(char *s, Rune u)
 		if (r == u)
 			return &(s[i]);
 	}
+
 	return NULL;
 }
 
@@ -734,6 +742,7 @@ utf8validate(Rune *u, size_t i)
 		*u = UTF_INVALID;
 	for (i = 1; *u > utfmax[i]; ++i)
 		;
+
 	return i;
 }
 
@@ -2959,6 +2968,7 @@ wlloadcolor(int i, const char *name, uint32_t *color)
 		} else
 			name = colorname[i];
 	}
+
 	return wld_lookup_named_color(name, color);
 }
 
@@ -2988,6 +2998,7 @@ wlsetcolorname(int x, const char *name)
 		return 1;
 
 	dc.col[x] = color;
+
 	return 0;
 }
 
