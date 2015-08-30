@@ -3639,9 +3639,6 @@ drawregion(int x1, int y1, int x2, int y2)
 	char buf[DRAW_BUF_SIZ];
 	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 
-	if (!(wl.state & WIN_VISIBLE))
-		return;
-
 	for (y = y1; y < y2; y++) {
 		if (!term.dirty[y])
 			continue;
@@ -3803,7 +3800,7 @@ framedone(void *data, struct wl_callback *callback, uint32_t msecs)
 {
 	wl_callback_destroy(callback);
 	wl.framecb = NULL;
-	if (needdraw) {
+	if (needdraw && wl.state & WIN_VISIBLE) {
 		draw();
 	}
 }
@@ -4277,7 +4274,7 @@ run(void)
 			}
 		}
 
-		if (needdraw) {
+		if (needdraw && wl.state & WIN_VISIBLE) {
 			if (!wl.framecb) {
 				draw();
 			}
