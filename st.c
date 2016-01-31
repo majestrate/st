@@ -4273,7 +4273,7 @@ run(void)
 			}
 		}
 
-		if (needdraw && wl.state & WIN_VISIBLE) {
+		if (needdraw) {
 			if (!wl.framecb) {
 				draw();
 			}
