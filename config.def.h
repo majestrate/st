@@ -9,6 +9,11 @@ static char font[] = "Liberation Mono:pixelsize=12:antialias=false:autohint=fals
 static int borderpx = 2;
 
 /*
+ * terminal transparency
+ */
+static uint8_t term_alpha = 0xa0;
+
+/*
  * What program is execed by st depends of these precedence rules:
  * 1: program passed with -e
  * 2: utmp option
@@ -96,6 +101,7 @@ static const char *colorname[] = {
 
 	/* more colors can be added after 255 to use with DefaultXX */
 	"#cccccc",
+  "#222222",
 };
 
 
@@ -104,7 +110,7 @@ static const char *colorname[] = {
  * foreground, background, cursor
  */
 static unsigned int defaultfg = 7;
-static unsigned int defaultbg = 0;
+static unsigned int defaultbg = 257;
 static unsigned int defaultcs = 256;
 
 

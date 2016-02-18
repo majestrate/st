@@ -85,7 +85,7 @@ char *argv0;
 				(t1.tv_nsec-t2.tv_nsec)/1E6)
 #define MODBIT(x, set, bit)	((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
 
-#define TRUECOLOR(r,g,b)	(1 << 24 | (r) << 16 | (g) << 8 | (b))
+#define TRUECOLOR(a,r,g,b)	((a) << 24 | (r) << 16 | (g) << 8 | (b))
 #define IS_TRUECOL(x)		(1 << 24 & (x))
 #define TRUERED(x)		(((x) & 0xff0000) >> 8)
 #define TRUEGREEN(x)		(((x) & 0xff00))
@@ -447,7 +447,7 @@ static void tfulldirt(void);
 static void techo(Rune);
 static void tcontrolcode(uchar );
 static void tdectest(char );
-static int32_t tdefcolor(int *, int *, int);
+static uint32_t tdefcolor(int *, int *, int);
 static void tdeftran(char);
 static inline int match(uint, uint);
 static void ttynew(void);
@@ -586,7 +586,6 @@ static char *opt_font = NULL;
 static char *opt_line = NULL;
 static int oldbutton = 3; /* button event on startup: 3 = release */
 static int oldx, oldy;
-
 static char *usedfont = NULL;
 static double usedfontsize = 0;
 static double defaultfontsize = 0;
@@ -1772,7 +1771,7 @@ tdeleteline(int n)
 		tscrollup(term.c.y, n);
 }
 
-int32_t
+uint32_t
 tdefcolor(int *attr, int *npar, int l)
 {
 	int32_t idx = -1;
@@ -1794,7 +1793,7 @@ tdefcolor(int *attr, int *npar, int l)
 			fprintf(stderr, "erresc: bad rgb color (%u,%u,%u)\n",
 				r, g, b);
 		else
-			idx = TRUECOLOR(r, g, b);
+			idx = TRUECOLOR(term_alpha ,r, g, b);
 		break;
 	case 5: /* indexed color */
 		if (*npar + 2 >= l) {
@@ -1808,6 +1807,7 @@ tdefcolor(int *attr, int *npar, int l)
 			fprintf(stderr, "erresc: bad fgcolor %d\n", attr[*npar]);
 		else
 			idx = attr[*npar];
+      idx &= (term_alpha << 24);
 		break;
 	case 0: /* implemented defined (only foreground) */
 	case 1: /* transparent */
@@ -1826,7 +1826,7 @@ void
 tsetattr(int *attr, int l)
 {
 	int i;
-	int32_t idx;
+	uint32_t idx;
 
 	for (i = 0; i < l; i++) {
 		switch (attr[i]) {
@@ -2941,7 +2941,7 @@ wlresize(int col, int row)
 
 	wld.oldbuffer = wld.buffer;
 	wld.buffer = wld_create_buffer(wld.ctx, wl.w, wl.h,
-			WLD_FORMAT_XRGB8888, 0);
+			WLD_FORMAT_ARGB8888, 0);
 	wld_export(wld.buffer, WLD_WAYLAND_OBJECT_BUFFER, &object);
 	wl.buffer = object.ptr;
 }
@@ -3366,6 +3366,7 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
 	if (y == term.row-1)
 		wlclear(winx, winy + wl.ch, winx + width, wl.h);
 
+  bg &= (term_alpha << 24);
 	/* Clean up the region we want to draw to. */
 	wld_fill_rectangle(wld.renderer, bg, winx, winy, width, wl.ch);
 
