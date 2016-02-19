@@ -11,7 +11,7 @@ static int borderpx = 2;
 /*
  * terminal transparency
  */
-static uint8_t term_alpha = 0xa0;
+static uint8_t term_alpha = 0xaa;
 
 /*
  * What program is execed by st depends of these precedence rules:
@@ -29,8 +29,8 @@ static char stty_args[] = "stty raw -echo -iexten echonl";
 static char vtiden[] = "\033[?6c";
 
 /* Kerning / character bounding-box multipliers */
-static float cwscale = 1.0;
-static float chscale = 1.0;
+static float cwscale = 0.95;
+static float chscale = 0.95;
 
 /*
  * word delimiter string
@@ -98,10 +98,9 @@ static const char *colorname[] = {
 	"white",
 
 	[255] = 0,
-
 	/* more colors can be added after 255 to use with DefaultXX */
-	"#cccccc",
-  "#222222",
+  "grey85",
+  "grey8",
 };
 
 
@@ -109,7 +108,7 @@ static const char *colorname[] = {
  * Default colors (colorname index)
  * foreground, background, cursor
  */
-static unsigned int defaultfg = 7;
+static unsigned int defaultfg = 256;
 static unsigned int defaultbg = 257;
 static unsigned int defaultcs = 256;
 

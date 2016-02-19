@@ -1793,7 +1793,7 @@ tdefcolor(int *attr, int *npar, int l)
 			fprintf(stderr, "erresc: bad rgb color (%u,%u,%u)\n",
 				r, g, b);
 		else
-			idx = TRUECOLOR(term_alpha ,r, g, b);
+			idx = TRUECOLOR(255 ,r, g, b);
 		break;
 	case 5: /* indexed color */
 		if (*npar + 2 >= l) {
@@ -3018,8 +3018,7 @@ void
 wltermclear(int col1, int row1, int col2, int row2)
 {
 	uint32_t color = dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
-
-	wld_fill_rectangle(wld.renderer, color, borderpx + col1 * wl.cw,
+  wld_fill_rectangle(wld.renderer, color, borderpx + col1 * wl.cw,
 			borderpx + row1 * wl.ch, (col2-col1+1) * wl.cw,
 			(row2-row1+1) * wl.ch);
 }
@@ -3031,7 +3030,6 @@ void
 wlclear(int x1, int y1, int x2, int y2)
 {
 	uint32_t color = dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
-
 	wld_fill_rectangle(wld.renderer, color, x1, y1, x2 - x1, y2 - y1);
 }
 
@@ -3290,7 +3288,7 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
 	}
 
 	if (IS_TRUECOL(base.fg)) {
-		fg = base.fg | 0xff000000;
+		fg = base.fg;
 	} else {
 		fg = dc.col[base.fg];
 	}
@@ -3365,10 +3363,10 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
 	if (y == term.row-1)
 		wlclear(winx, winy + wl.ch, winx + width, wl.h);
 
-  bg &= (term_alpha << 24);
+  bg |= (  128 << ( 3 * 8 ) );
 	/* Clean up the region we want to draw to. */
-	wld_fill_rectangle(wld.renderer, bg, winx, winy, width, wl.ch);
-
+	wld_fill_rectangle(wld.renderer, (bg & (term_alpha << 24)) | (bg & 0x00FFFFFF), winx, winy, width, wl.ch);
+  
 	for (xp = winx; bytelen > 0;) {
 		/*
 		 * Search for the range in the to be printed string of glyphs
@@ -3471,7 +3469,7 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
 			FcPatternDestroy(fcpattern);
 			FcCharSetDestroy(fccharset);
 		}
-
+    
 		wld_draw_text(wld.renderer, frc[i].font, fg,
 				xp, winy + frc[i].font->ascent,
 				u8c, u8cblen, NULL);
@@ -3529,7 +3527,7 @@ wldrawcursor(void)
 
 	if (IS_SET(MODE_HIDE))
 		return;
-
+  uint32_t cs = dc.col[defaultcs] & (term_alpha << 24);
 	/* draw the new one */
 	if (wl.state & WIN_FOCUSED) {
 		switch (wl.cursor) {
@@ -3547,33 +3545,33 @@ wldrawcursor(void)
 				break;
 			case 3: /* Blinking Underline */
 			case 4: /* Steady Underline */
-				wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+				wld_fill_rectangle(wld.renderer, cs,
 						borderpx + curx * wl.cw,
 						borderpx + (term.c.y + 1) * wl.ch - cursorthickness,
 						wl.cw, cursorthickness);
 				break;
 			case 5: /* Blinking bar */
 			case 6: /* Steady bar */
-				wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+				wld_fill_rectangle(wld.renderer, cs,
 						borderpx + curx * wl.cw,
 						borderpx + term.c.y * wl.ch,
 						cursorthickness, wl.ch);
 				break;
 		}
 	} else {
-		wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+		wld_fill_rectangle(wld.renderer, cs,
 				borderpx + curx * wl.cw,
 				borderpx + term.c.y * wl.ch,
 				wl.cw - 1, 1);
-		wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+		wld_fill_rectangle(wld.renderer, cs,
 				borderpx + curx * wl.cw,
 				borderpx + term.c.y * wl.ch,
 				1, wl.ch - 1);
-		wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+		wld_fill_rectangle(wld.renderer, cs,
 				borderpx + (curx + 1) * wl.cw - 1,
 				borderpx + term.c.y * wl.ch,
 				1, wl.ch - 1);
-		wld_fill_rectangle(wld.renderer, dc.col[defaultcs],
+		wld_fill_rectangle(wld.renderer, cs,
 				borderpx + curx * wl.cw,
 				borderpx + (term.c.y + 1) * wl.ch - 1,
 				wl.cw, 1);
