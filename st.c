@@ -85,7 +85,7 @@ char *argv0;
 				(t1.tv_nsec-t2.tv_nsec)/1E6)
 #define MODBIT(x, set, bit)	((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
 
-#define TRUECOLOR(a,r,g,b)	((a) << 24 | (r) << 16 | (g) << 8 | (b))
+#define TRUECOLOR(r,g,b)	(1 << 24 | (r) << 16 | (g) << 8 | (b))
 #define IS_TRUECOL(x)		(1 << 24 & (x))
 #define TRUERED(x)		(((x) & 0xff0000) >> 8)
 #define TRUEGREEN(x)		(((x) & 0xff00))
@@ -1793,7 +1793,7 @@ tdefcolor(int *attr, int *npar, int l)
 			fprintf(stderr, "erresc: bad rgb color (%u,%u,%u)\n",
 				r, g, b);
 		else
-			idx = TRUECOLOR(255 ,r, g, b);
+			idx = TRUECOLOR(r, g, b);
 		break;
 	case 5: /* indexed color */
 		if (*npar + 2 >= l) {
@@ -3018,7 +3018,7 @@ void
 wltermclear(int col1, int row1, int col2, int row2)
 {
 	uint32_t color = dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
-  wld_fill_rectangle(wld.renderer, color, borderpx + col1 * wl.cw,
+	wld_fill_rectangle(wld.renderer, color, borderpx + col1 * wl.cw,
 			borderpx + row1 * wl.ch, (col2-col1+1) * wl.cw,
 			(row2-row1+1) * wl.ch);
 }
@@ -3363,10 +3363,8 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
 	if (y == term.row-1)
 		wlclear(winx, winy + wl.ch, winx + width, wl.h);
 
-  bg |= (  128 << ( 3 * 8 ) );
 	/* Clean up the region we want to draw to. */
 	wld_fill_rectangle(wld.renderer, (bg & (term_alpha << 24)) | (bg & 0x00FFFFFF), winx, winy, width, wl.ch);
-  
 	for (xp = winx; bytelen > 0;) {
 		/*
 		 * Search for the range in the to be printed string of glyphs
@@ -3469,7 +3467,7 @@ wldraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
 			FcPatternDestroy(fcpattern);
 			FcCharSetDestroy(fccharset);
 		}
-    
+
 		wld_draw_text(wld.renderer, frc[i].font, fg,
 				xp, winy + frc[i].font->ascent,
 				u8c, u8cblen, NULL);
@@ -3527,7 +3525,7 @@ wldrawcursor(void)
 
 	if (IS_SET(MODE_HIDE))
 		return;
-  uint32_t cs = dc.col[defaultcs] & (term_alpha << 24);
+	uint32_t cs = dc.col[defaultcs] & (term_alpha << 24);
 	/* draw the new one */
 	if (wl.state & WIN_FOCUSED) {
 		switch (wl.cursor) {
